@@ -15,21 +15,6 @@ node relay.js          # 或 pm2 start ecosystem.config.js
 - `5000` — WebSocket Relay（DLL 端和观战端均连此端口）
 - `1377` — 管理后台（HTTP）
 
-### 房间白名单推送脚本
-
-```bash
-# 设置环境变量后运行
-export ROOMS_API_URL="你的房间列表API地址"
-export RELAY_HOST="127.0.0.1:1377"
-export ROOMS_SECRET="你的密钥"
-bash push_rooms.sh
-```
-
-可配合 crontab 定时执行：
-```cron
-*/10 * * * * /path/to/push_rooms.sh
-```
-
 ## 前端
 
 纯静态文件，部署到任意 Web 服务器即可。
