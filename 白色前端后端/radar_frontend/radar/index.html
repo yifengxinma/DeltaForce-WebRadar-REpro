@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Divine Lock</title>
+  <meta name="description" content="本网页提供《三角洲行动》游戏中零号大坝地图的分层、快速定位、物资点、撤离点等信息。您可以查看地图上的各种物品、服务器、首领等位置，以及开启地图随机事件的功能。">
+  <meta name="keywords" content="三角洲行动,Delta Force,地图工具,零号大坝,长弓溪谷,航天基地,巴克什,潮汐监狱,烽火地带,撤离点,物资点,保险箱,互动地图">
+  <meta name="author" content="DFM Map Tool">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Open Graph (社交分享) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Divine Lock">
+  <meta property="og:description" content="三角洲行动烽火地带互动地图，实时查看物资点、撤离点、保险箱等位置信息。">
+  <meta property="og:url" content="/">
+  <meta property="og:site_name" content="Divine Lock">
+  <meta property="og:image" content="https://game.gtimg.cn/images/dfm/cp/a20240729directory/img/lv3/dtcld.png">
+  <meta property="og:image:width" content="256">
+  <meta property="og:image:height" content="256">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Divine Lock">
+  <meta name="twitter:description" content="三角洲行动烽火地带互动地图，实时查看物资点、撤离点、保险箱等位置信息。">
+  <meta name="twitter:image" content="https://game.gtimg.cn/images/dfm/cp/a20240729directory/img/lv3/dtcld.png">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://game.gtimg.cn/images/dfm/cp/a20240729directory/leaflet.css">
+  <link rel="stylesheet" href="styles.css?v=4">
+  <style>
+    /* 白色炫酷入口页内联样式 - 覆盖深色主题 */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap');
+    .bg-container {
+      position: fixed !important; top: 0; left: 0; width: 100%; height: 100%;
+      overflow: hidden; z-index: 9998 !important;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+      pointer-events: none;
+    }
+    .blob { position: absolute; filter: blur(90px); opacity: 0.6; animation: float 12s infinite ease-in-out alternate; }
+    .blob-1 { width: 500px; height: 500px; background: #d0ebff !important; top: -150px; left: -100px; border-radius: 50%; }
+    .blob-2 { width: 600px; height: 600px; background: #eebefa !important; bottom: -200px; right: -150px; border-radius: 50%; animation-delay: -4s; }
+    .blob-3 { width: 400px; height: 400px; background: #e3fafc !important; top: 30%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; animation-delay: -7s; }
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+    .landing-overlay {
+      position: fixed !important; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999 !important; perspective: 1000px;
+      background: transparent !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+    }
+    .landing-card {
+      position: relative; width: 420px;
+      background: rgba(255, 255, 255, 0.75) !important;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.9) !important;
+      border-radius: 28px !important; padding: 48px 40px !important;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255,255,255,0.6) inset !important;
+      text-align: center; transform-style: preserve-3d;
+      animation: cardEnter 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(50px) scale(0.95) rotateX(-5deg); }
+      to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
+    }
+    .logo-box {
+      width: 64px; height: 64px; margin: 0 auto 24px auto;
+      background: #111 !important; border-radius: 20px !important;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+      animation: pulseShadow 2s infinite alternate;
+    }
+    @keyframes pulseShadow {
+      from { box-shadow: 0 12px 24px rgba(0,0,0,0.12), 0 0 0 0 rgba(17,17,17,0.15); }
+      to { box-shadow: 0 12px 24px rgba(0,0,0,0.12), 0 0 0 12px rgba(17,17,17,0); }
+    }
+    .logo-box svg { width: 32px; height: 32px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .landing-title { font-size: 28px !important; font-weight: 800 !important; margin-bottom: 8px; color: #111 !important; letter-spacing: -0.5px; }
+    .landing-desc { font-size: 15px !important; color: #666 !important; margin-bottom: 36px; line-height: 1.5; font-weight: 500; }
+    .input-wrap { position: relative; margin-bottom: 24px; }
+    .input-icon {
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; color: #adb5bd; transition: color 0.3s;
+    }
+    .landing-input {
+      width: 100%; padding: 18px 18px 18px 48px !important;
+      font-size: 16px !important; font-weight: 600; color: #111 !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      border: 2px solid transparent !important; border-radius: 18px !important;
+      outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.02) inset, 0 0 0 1px rgba(0,0,0,0.06);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      text-align: center; letter-spacing: 1px;
+    }
+    .landing-input::placeholder { color: #adb5bd !important; font-weight: 500; letter-spacing: normal; }
+    .landing-input:focus { background: #fff !important; border-color: #111 !important; box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 0 0 4px rgba(17,17,17,0.08) !important; }
+    .landing-btn {
+      width: 100%; padding: 18px !important;
+      font-size: 16px !important; font-weight: 600; color: #fff !important;
+      background: #111 !important; border: none !important; border-radius: 18px !important;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative; overflow: hidden;
+    }
+    .landing-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(17,17,17,0.25); background: #222 !important; }
+    .landing-btn:active { transform: translateY(1px); box-shadow: 0 6px 12px rgba(17,17,17,0.2); }
+    .btn-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.3s ease; }
+    .landing-btn:hover .btn-icon { transform: translateX(5px); }
+    .error-msg { color: #fa5252 !important; font-size: 13px; font-weight: 500; height: 18px; transition: opacity 0.3s; margin-top: 12px; }
+    .landing-hint {
+      margin-top: 24px; font-size: 13px; color: #868e96 !important; font-weight: 500;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .landing-hint::before { content: ''; display: block; width: 8px; height: 8px; background: #40c057; border-radius: 50%; box-shadow: 0 0 10px #40c057; }
+    .lang-switch {
+      position: fixed !important; top: 24px; right: 24px;
+      display: flex; gap: 8px; background: rgba(255,255,255,0.8) !important;
+      padding: 6px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      z-index: 10001 !important;
+    }
+    .lang-btn { border: none; background: transparent; padding: 6px 12px; border-radius: 14px; font-size: 13px; font-weight: 600; color: #666 !important; cursor: pointer; transition: all 0.3s; }
+    .lang-btn.active { background: #111 !important; color: #fff !important; }
+    .card-exit { animation: cardExit 0.7s cubic-bezier(0.8, 0, 0.2, 1) forwards; }
+    @keyframes cardExit {
+      0% { transform: scale(1); opacity: 1; filter: blur(0px); }
+      30% { transform: scale(1.05); opacity: 1; filter: blur(0px); }
+      100% { transform: scale(0.5) translateY(-50px); opacity: 0; filter: blur(20px); visibility: hidden; }
+    }
+    .btn-loading { pointer-events: none; color: transparent !important; }
+    .btn-loading .btn-icon { display: none; }
+    .btn-loading .btn-text { visibility: hidden; }
+    .btn-loading::after {
+      content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
+      margin: -11px 0 0 -11px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .transition-circle {
+      position: fixed; top: 50%; left: 50%; width: 2px; height: 2px;
+      background: #fff; border-radius: 50%; transform: translate(-50%, -50%) scale(0);
+      z-index: 10002; pointer-events: none; opacity: 0;
+    }
+    .circle-expand { animation: circleExpand 1.2s cubic-bezier(0.7, 0, 0.1, 1) forwards; }
+    @keyframes circleExpand {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(3000); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(3000); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 入口页面（无 key 时显示） -->
+<!-- 语言切换 -->
+<div class="lang-switch" id="langSwitch">
+  <button class="lang-btn active" onclick="setLang('en')" id="btnEn">EN</button>
+  <button class="lang-btn" onclick="setLang('zh')" id="btnZh">中</button>
+</div>
+
+<!-- 动态背景光晕 -->
+<div class="bg-container" id="bgContainer">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<div class="landing-overlay" id="landingOverlay">
+  <div class="landing-card" id="landingCard">
+    <div class="logo-box">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
+        <circle cx="12" cy="10" r="3"></circle>
+      </svg>
+    </div>
+
+    <h1 class="landing-title" id="tTitle">Holo Tactical Radar</h1>
+    <p class="landing-desc" id="tDesc">Connect to encrypted channel, sync battlefield status</p>
+
+    <div class="input-wrap">
+      <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <input type="text" class="landing-input" id="landingKey" placeholder="Enter Room ID" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter') goRadarNew()">
+    </div>
+
+    <button class="landing-btn" id="landingBtn" onclick="goRadarNew()">
+      <span class="btn-text" id="tBtn">Establish Connection</span>
+      <svg class="btn-icon" viewBox="0 0 24 24">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </button>
+
+    <p class="error-msg" id="landingError" style="opacity:0;">Invalid or expired Room ID</p>
+    <p class="landing-hint" id="tHint">End-to-end encrypted communication</p>
+  </div>
+</div>
+
+<!-- 转场白屏特效 -->
+<div class="transition-circle" id="transitionCircle"></div>
+
+<!-- 底部居中浮动观战栏 -->
+<div class="spectate-bar" id="spectateBar">
+  <span class="spectate-label">观战视角</span>
+  <select id="spectateSelect"><option value="self">自身</option></select>
+  <button class="spectate-btn" id="btnFollow" onclick="toggleFollow()">跟随: 关</button>
+</div>
+
+<!-- Full-screen map -->
+<div id="map"></div>
+
+<!-- Floating top bar -->
+<div class="topbar">
+
+  <!-- 顶部居中玩家计数条（嵌在topbar内，不独立浮动） -->
+  <div class="player-counter" id="playerCounter">
+    <div class="pc-item">
+      <span class="pc-dot" style="background:#FF453A"></span>
+      <span class="pc-val" id="pcP">0</span>
+      <span class="pc-lbl">玩家</span>
+    </div>
+    <div class="pc-sep"></div>
+    <div class="pc-item">
+      <span class="pc-dot" style="background:#FF9F0A"></span>
+      <span class="pc-val" id="pcD">0</span>
+      <span class="pc-lbl">倒地</span>
+    </div>
+    <div class="pc-sep"></div>
+    <div class="pc-item">
+      <span class="pc-dot" style="background:#636366"></span>
+      <span class="pc-val" id="pcA">0</span>
+      <span class="pc-lbl">人机</span>
+    </div>
+  </div>
+
+  <div class="map-tabs" id="mapTabs">
+    <div class="map-tab active" id="tab-daba" onclick="switchMap('daba')">零号大坝</div>
+    <div class="map-tab" id="tab-cgxg" onclick="switchMap('cgxg')">长弓溪谷</div>
+    <div class="map-tab" id="tab-htjd" onclick="switchMap('htjd')">航天基地</div>
+    <div class="map-tab" id="tab-bks" onclick="switchMap('bks')">巴克什</div>
+    <div class="map-tab" id="tab-cxjy" onclick="switchMap('cxjy')">潮汐监狱</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <button class="topbar-pill" style="margin-left:auto" id="btnFullscreen" onclick="toggleFullscreen()" title="全屏">⛶</button>
+  <div class="topbar-pill" style="cursor:default">
+    <div class="conn-dot" id="connDot"></div>
+    <span id="connText">未连接</span>
+  </div>
+</div>
+
+<!-- 浮动队伍面板（左下角，跟随模式时显示） -->
+<div class="team-float" id="spectateFloat">
+  <div id="sfBtnList"></div>
+</div>
+
+<!-- 浮动当局统计（收缩侧边栏时左上角显示） -->
+<div class="float-stats" id="floatStats">
+  <div class="fs-title">当局统计</div>
+  <div class="fs-row"><span class="fs-dot" style="background:#FF453A"></span><span class="fs-val" id="fsP">0</span><span class="fs-lbl">玩家</span></div>
+  <div class="fs-row"><span class="fs-dot" style="background:#636366"></span><span class="fs-val" id="fsA">0</span><span class="fs-lbl">人机</span></div>
+  <div class="fs-row"><span class="fs-dot" style="background:#FF9F0A"></span><span class="fs-val" id="fsD">0</span><span class="fs-lbl">倒地</span></div>
+  <div class="fs-row"><span class="fs-dot" style="background:#30D158"></span><span class="fs-val" id="fsI">0</span><span class="fs-lbl">物品</span></div>
+  <div class="fs-row"><span class="fs-dot" style="background:#FF9F0A"></span><span class="fs-val" id="fsC">0</span><span class="fs-lbl">容器</span></div>
+  <div class="fs-row"><span class="fs-dot" style="background:#0A84FF"></span><span class="fs-val" id="fsE">0</span><span class="fs-lbl">撤离</span></div>
+</div>
+
+<!-- Sidebar collapse toggle -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">‹</button>
+
+<!-- Left sidebar -->
+<div class="sidebar">
+
+  <!-- Stats (未进入地图时隐藏) -->
+  <div class="panel" id="panelStats" style="display:none">
+    <div class="panel-title">当局统计</div>
+    <div class="stats-grid">
+      <div class="stat-row"><span class="stat-dot" style="background:#FF453A;box-shadow:0 0 6px #FF453A"></span><span class="stat-val" id="stP" style="color:#FF453A">0</span><span class="stat-lbl">玩家/队伍</span></div>
+      <div class="stat-row"><span class="stat-dot" style="background:#636366"></span><span class="stat-val" id="stA" style="color:#636366">0</span><span class="stat-lbl">人机</span></div>
+      <div class="stat-row"><span class="stat-dot" style="background:#FF9F0A;box-shadow:0 0 6px #FF9F0A"></span><span class="stat-val" id="stD" style="color:#FF9F0A">0</span><span class="stat-lbl">倒地</span></div>
+      <div class="stat-row"><span class="stat-dot" style="background:#30D158;box-shadow:0 0 6px #30D158"></span><span class="stat-val" id="stI" style="color:#30D158">0</span><span class="stat-lbl">物品</span></div>
+      <div class="stat-row"><span class="stat-dot" style="background:#FF9F0A;box-shadow:0 0 6px #FF9F0A"></span><span class="stat-val" id="stC" style="color:#FF9F0A">0</span><span class="stat-lbl">容器</span></div>
+      <div class="stat-row"><span class="stat-dot" style="background:#0A84FF;box-shadow:0 0 6px #0A84FF"></span><span class="stat-val" id="stE" style="color:#0A84FF">0</span><span class="stat-lbl">撤离</span></div>
+      <div class="stat-row" style="grid-column:span 2"><span class="stat-dot" style="background:#AC8E68;box-shadow:0 0 6px #AC8E68"></span><span class="stat-val" id="stSize" style="color:#AC8E68">-</span><span class="stat-lbl">数据量</span></div>
+    </div>
+  </div>
+
+  <!-- Layers -->
+  <div class="panel">
+    <div class="panel-title">图层</div>
+    <div class="layer-grid">
+      <div class="layer-row" onclick="toggleLayer('enemy')"><span class="layer-lbl"><span class="ldot" style="background:#FF453A"></span>敌方</span><div class="ltog on" id="ltog-enemy"></div></div>
+      <div class="layer-row" onclick="toggleLayer('box')"><span class="layer-lbl"><span class="ldot" style="background:#C8A060"></span>盒子</span><div class="ltog on" id="ltog-box"></div></div>
+      <div class="layer-row" onclick="toggleLayer('ai')"><span class="layer-lbl"><span class="ldot" style="background:#636366"></span>人机</span><div class="ltog" id="ltog-ai"></div></div>
+      <div class="layer-row" onclick="toggleLayer('container')"><span class="layer-lbl"><span class="ldot" style="background:#FFD60A"></span>容器</span><div class="ltog on" id="ltog-container"></div></div>
+      <div class="layer-row" onclick="toggleLayer('item')"><span class="layer-lbl"><span class="ldot" style="background:#BF5AF2"></span>物品</span><div class="ltog on" id="ltog-item"></div></div>
+      <div class="layer-row" onclick="toggleLayer('exit')"><span class="layer-lbl"><span class="ldot" style="background:#30D158"></span>撤离</span><div class="ltog on" id="ltog-exit"></div></div>
+    </div>
+    <div class="scale-row">
+      <span class="cfg-lbl">全局</span>
+      <input type="range" class="scale-slider" id="markerScale" min="0.5" max="2" step="0.1" value="1.3" oninput="setMarkerScale(this.value)">
+      <span class="scale-val" id="scaleVal">1.3</span>
+    </div>
+    <div class="scale-row">
+      <span class="cfg-lbl">物品</span>
+      <input type="range" class="scale-slider" id="itemScale" min="0.5" max="3" step="0.1" value="1.0" oninput="setItemScale(this.value)">
+      <span class="scale-val" id="itemScaleVal">1.0</span>
+    </div>
+    <div class="scale-row">
+      <span class="cfg-lbl">容器</span>
+      <input type="range" class="scale-slider" id="containerScale" min="0.5" max="3" step="0.1" value="1.0" oninput="setContainerScale(this.value)">
+      <span class="scale-val" id="containerScaleVal">1.0</span>
+    </div>
+    <div class="scale-row">
+      <span class="cfg-lbl" style="width:auto">价值</span>
+      <input type="range" class="scale-slider" id="itemValueFilter" min="0" max="60000" step="1000" value="0" oninput="setItemValueFilter(this.value)">
+      <input type="text" id="itemValDisp" class="scale-val-input" value="0" onchange="onItemValInput(this.value)" onclick="this.select()">
+    </div>
+    <input type="hidden" id="lerpMultiplier" value="3">
+  </div>
+
+
+  <!-- Connection (hidden inputs for WS defaults) -->
+  <input type="hidden" id="cfgHost" value="localhost"/>
+  <input type="hidden" id="cfgPort" value="12345"/>
+  <input type="hidden" id="cfgKey" value=""/>
+  <div id="wsStatusText" style="display:none"></div>
+  <button id="btnPoll" style="display:none"></button>
+
+</div>
+
+<!-- Hidden compat IDs -->
+<span id="sbMapName" style="display:none"></span>
+
+<!-- Toast -->
+<div id="toast">已复制到剪贴板</div>
+
+<!-- Leaflet JS from official CDN -->
+<script src="https://game.gtimg.cn/images/dfm/cp/a20240729directory/js/lib/leaflet.js"></script>
+<!-- 模块化 JS（按依赖顺序加载） -->
+<script src="js/mapConfig.js?v=3"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/mapEngine.js?v=3"></script>
+<script src="js/canvasRenderer.js?v=4"></script>
+<script src="js/wsClient.js?v=4"></script>
+<script src="js/main.js?v=5"></script>
+</body>
+</html>

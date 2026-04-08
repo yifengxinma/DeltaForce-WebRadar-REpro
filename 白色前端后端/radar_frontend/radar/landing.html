@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holo Tactical Radar</title>
+  <meta name="description" content="Real-time tactical radar for Delta Force operations">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body, html {
+      width: 100%; height: 100%;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f4f6f8;
+      overflow: hidden;
+      color: #1a1a1a;
+    }
+
+    /* 动态背景光晕 */
+    .bg-container {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      overflow: hidden; z-index: 0;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .blob {
+      position: absolute; filter: blur(90px); z-index: 1; opacity: 0.6;
+      animation: float 12s infinite ease-in-out alternate;
+    }
+
+    .blob-1 {
+      width: 500px; height: 500px; background: #d0ebff;
+      top: -150px; left: -100px; border-radius: 50%;
+    }
+
+    .blob-2 {
+      width: 600px; height: 600px; background: #eebefa;
+      bottom: -200px; right: -150px; border-radius: 50%;
+      animation-delay: -4s;
+    }
+
+    .blob-3 {
+      width: 400px; height: 400px; background: #e3fafc;
+      top: 30%; left: 50%; transform: translate(-50%, -50%);
+      border-radius: 50%; animation-delay: -7s;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    /* 主容器 */
+    .landing-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10; perspective: 1000px;
+    }
+
+    /* 毛玻璃卡片 */
+    .landing-card {
+      position: relative; width: 420px;
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 28px; padding: 48px 40px;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255,255,255,0.6) inset;
+      text-align: center; transform-style: preserve-3d;
+      animation: cardEnter 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(50px) scale(0.95) rotateX(-5deg); }
+      to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
+    }
+
+    /* 图标 */
+    .logo-box {
+      width: 64px; height: 64px; margin: 0 auto 24px auto;
+      background: #111; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+      animation: pulseShadow 2s infinite alternate;
+    }
+
+    @keyframes pulseShadow {
+      from { box-shadow: 0 12px 24px rgba(0,0,0,0.12), 0 0 0 0 rgba(17,17,17,0.15); }
+      to { box-shadow: 0 12px 24px rgba(0,0,0,0.12), 0 0 0 12px rgba(17,17,17,0); }
+    }
+
+    .logo-box svg { width: 32px; height: 32px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* 文字 */
+    .landing-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #111; letter-spacing: -0.5px; }
+    .landing-desc { font-size: 15px; color: #666; margin-bottom: 36px; line-height: 1.5; font-weight: 500; }
+
+    /* 输入框 */
+    .input-wrap { position: relative; margin-bottom: 24px; }
+    .input-icon {
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; color: #adb5bd; transition: color 0.3s;
+    }
+    
+    .landing-input {
+      width: 100%; padding: 18px 18px 18px 48px;
+      font-size: 16px; font-weight: 600; color: #111;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid transparent; border-radius: 18px;
+      outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.02) inset, 0 0 0 1px rgba(0,0,0,0.06);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      text-align: center; letter-spacing: 1px;
+    }
+
+    .landing-input::placeholder { color: #adb5bd; font-weight: 500; letter-spacing: normal; }
+    .landing-input:focus {
+      background: #fff; border-color: #111;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 0 0 4px rgba(17,17,17,0.08);
+    }
+    .landing-input:focus + .input-icon { color: #111; }
+
+    /* 按钮 */
+    .landing-btn {
+      width: 100%; padding: 18px;
+      font-size: 16px; font-weight: 600; color: #fff;
+      background: #111; border: none; border-radius: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative; overflow: hidden;
+    }
+
+    .landing-btn::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .landing-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(17,17,17,0.25); background: #222; }
+    .landing-btn:hover::before { left: 100%; }
+    .landing-btn:active { transform: translateY(1px); box-shadow: 0 6px 12px rgba(17,17,17,0.2); }
+
+    .btn-icon {
+      width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      transition: transform 0.3s ease; position: relative; z-index: 2;
+    }
+    .landing-btn:hover .btn-icon { transform: translateX(5px); }
+
+    /* 错误与底部提示 */
+    .error-msg { color: #fa5252; font-size: 13px; font-weight: 500; height: 18px; opacity: 0; transition: opacity 0.3s; margin-top: 12px; }
+    .landing-hint {
+      margin-top: 24px; font-size: 13px; color: #868e96; font-weight: 500;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .landing-hint::before {
+      content: ''; display: block; width: 8px; height: 8px; background: #40c057;
+      border-radius: 50%; box-shadow: 0 0 10px #40c057;
+    }
+
+    /* 转场动画 */
+    .card-exit { animation: cardExit 0.7s cubic-bezier(0.8, 0, 0.2, 1) forwards; }
+    @keyframes cardExit {
+      0% { transform: scale(1); opacity: 1; filter: blur(0px); }
+      30% { transform: scale(1.05); opacity: 1; filter: blur(0px); }
+      100% { transform: scale(0.5) translateY(-50px); opacity: 0; filter: blur(20px); visibility: hidden; }
+    }
+
+    .btn-loading { pointer-events: none; color: transparent !important; }
+    .btn-loading .btn-icon { display: none; }
+    .btn-loading .btn-text { visibility: hidden; }
+    .btn-loading::after {
+      content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
+      margin: -11px 0 0 -11px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .transition-circle {
+      position: fixed; top: 50%; left: 50%; width: 2px; height: 2px;
+      background: #fff; border-radius: 50%; transform: translate(-50%, -50%) scale(0);
+      z-index: 999; pointer-events: none; opacity: 0;
+    }
+    .circle-expand { animation: circleExpand 1.2s cubic-bezier(0.7, 0, 0.1, 1) forwards; }
+    @keyframes circleExpand {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(3000); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(3000); opacity: 1; }
+    }
+
+    /* 语言切换按钮 */
+    .lang-switch {
+      position: fixed; top: 24px; right: 24px;
+      display: flex; gap: 8px; background: rgba(255,255,255,0.8);
+      padding: 6px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+    .lang-btn {
+      border: none; background: transparent; padding: 6px 12px; border-radius: 14px;
+      font-size: 13px; font-weight: 600; color: #666; cursor: pointer; transition: all 0.3s;
+    }
+    .lang-btn.active { background: #111; color: #fff; }
+
+  </style>
+</head>
+<body>
+
+  <!-- 语言切换 -->
+  <div class="lang-switch" id="langSwitch">
+    <button class="lang-btn active" onclick="setLang('en')" id="btnEn">EN</button>
+    <button class="lang-btn" onclick="setLang('zh')" id="btnZh">中</button>
+  </div>
+
+  <!-- 背景特效 -->
+  <div class="bg-container" id="bgContainer">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="landing-overlay" id="landingOverlay">
+    <div class="landing-card" id="landingCard">
+      
+      <div class="logo-box">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+      </div>
+
+      <h1 class="landing-title" id="tTitle">Holo Tactical Radar</h1>
+      <p class="landing-desc" id="tDesc">Connect to encrypted channel, sync battlefield status</p>
+
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <input type="text" class="landing-input" id="landingKey" placeholder="Enter Room ID" autocomplete="off" spellcheck="false">
+      </div>
+
+      <button class="landing-btn" id="landingBtn" onclick="goRadar()">
+        <span class="btn-text" id="tBtn">Establish Connection</span>
+        <svg class="btn-icon" viewBox="0 0 24 24">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+
+      <p class="error-msg" id="errorMsg"></p>
+      <p class="landing-hint" id="tHint">End-to-end encrypted communication</p>
+
+    </div>
+  </div>
+
+  <!-- 转场白屏特效 -->
+  <div class="transition-circle" id="transitionCircle"></div>
+
+  <script>
+    // 多语言字典
+    const i18n = {
+      en: {
+        title: "Holo Tactical Radar",
+        desc: "Connect to encrypted channel, sync battlefield status",
+        placeholder: "Enter Room ID",
+        btn: "Establish Connection",
+        hint: "End-to-end encrypted communication",
+        errEmpty: "Please enter a valid Room ID",
+        errInvalid: "Invalid room, please let the host enter the game!",
+        errTimeout: "Connection timeout, please retry",
+        errNetwork: "Unable to connect to server"
+      },
+      zh: {
+        title: "全息战术雷达",
+        desc: "接入加密频道，实时同步战场态势",
+        placeholder: "请输入房间号",
+        btn: "建立安全连接",
+        hint: "终端通信已采用端到端加密",
+        errEmpty: "请输入有效房间号",
+        errInvalid: "当前房间无效,请让主端进入游戏！",
+        errTimeout: "连接超时，请稍后重试",
+        errNetwork: "无法连接服务器"
+      }
+    };
+
+    let currentLang = 'en';
+    const input = document.getElementById('landingKey');
+    const btn = document.getElementById('landingBtn');
+    const card = document.getElementById('landingCard');
+    const errorMsg = document.getElementById('errorMsg');
+    const circle = document.getElementById('transitionCircle');
+    const bgContainer = document.getElementById('bgContainer');
+    const overlay = document.getElementById('landingOverlay');
+    const langSwitch = document.getElementById('langSwitch');
+
+    // 初始化：根据浏览器语言设置
+    (function init() {
+      const browserLang = navigator.language || navigator.userLanguage;
+      if (browserLang.startsWith('zh')) setLang('zh');
+      else setLang('en');
+      
+      // 自动填充上次房间号
+      try {
+        const saved = localStorage.getItem('lastRoomKey');
+        if (saved) input.value = saved;
+      } catch(e) {}
+      
+      setTimeout(() => input.focus(), 100);
+    })();
+
+    function setLang(lang) {
+      currentLang = lang;
+      document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+      document.getElementById('btnZh').classList.toggle('active', lang === 'zh');
+      
+      document.getElementById('tTitle').innerText = i18n[lang].title;
+      document.getElementById('tDesc').innerText = i18n[lang].desc;
+      input.placeholder = i18n[lang].placeholder;
+      document.getElementById('tBtn').innerText = i18n[lang].btn;
+      document.getElementById('tHint').innerText = i18n[lang].hint;
+    }
+
+    function showError(key) {
+      errorMsg.innerText = i18n[currentLang][key];
+      errorMsg.style.opacity = '1';
+      btn.classList.remove('btn-loading');
+    }
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') goRadar();
+    });
+
+    function goRadar() {
+      const key = input.value.trim();
+      if (!key) {
+        showError('errEmpty');
+        input.focus();
+        return;
+      }
+      
+      errorMsg.style.opacity = '0';
+      btn.classList.add('btn-loading');
+
+      // 连接 relay 验证房间
+      const checkUrl = `ws://${location.hostname}:5000`;
+      const checkWs = new WebSocket(checkUrl);
+      
+      const timeout = setTimeout(() => {
+        checkWs.close();
+        showError('errTimeout');
+      }, 5000);
+
+      checkWs.onopen = () => {
+        checkWs.send(JSON.stringify({ action: 'auth', role: 'check', key: key }));
+      };
+
+      checkWs.onmessage = (e) => {
+        clearTimeout(timeout);
+        try {
+          const msg = JSON.parse(e.data);
+          checkWs.close();
+          if (msg.ok && msg.pub) {
+            // 验证通过，保存房间号，播放转场动画
+            try { localStorage.setItem('lastRoomKey', key); } catch(e) {}
+            playTransition(key);
+          } else {
+            showError('errInvalid');
+          }
+        } catch (ex) {
+          showError('errInvalid');
+        }
+      };
+
+      checkWs.onerror = () => {
+        clearTimeout(timeout);
+        showError('errNetwork');
+      };
+    }
+
+    function playTransition(key) {
+      // 1. 卡片消失
+      card.classList.add('card-exit');
+      langSwitch.style.opacity = '0';
+      langSwitch.style.transition = 'opacity 0.3s';
+      
+      // 2. 白圈爆发
+      setTimeout(() => {
+        circle.classList.add('circle-expand');
+        bgContainer.style.opacity = '0';
+        bgContainer.style.transition = 'opacity 0.3s';
+        
+        // 3. 跳转到地图页
+        setTimeout(() => {
+          window.location.href = 'index.html?key=' + encodeURIComponent(key);
+        }, 600);
+      }, 400);
+    }
+  </script>
+</body>
+</html>

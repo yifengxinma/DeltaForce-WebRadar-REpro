@@ -1,0 +1,37 @@
+# 环境变量（含密码等敏感信息）
+.env
+.env.local
+.env.production
+
+# Node.js
+node_modules/
+package-lock.json
+
+# SQLite 数据库
+*.db
+*.db-wal
+*.db-shm
+
+# 备份文件
+*.bak
+*.backup
+
+# 历史数据（旧 JSON 格式）
+stats_history.json
+stats_history.json.bak
+
+# 系统文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志
+*.log
+npm-debug.log*

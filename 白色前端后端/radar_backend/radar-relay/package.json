@@ -1,0 +1,17 @@
+{
+  "name": "radar-relay",
+  "version": "1.0.0",
+  "main": "relay.js",
+  "scripts": {
+    "start": "node relay.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "WebSocket relay server for Delta Force radar",
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "ws": "^8.20.0"
+  }
+}

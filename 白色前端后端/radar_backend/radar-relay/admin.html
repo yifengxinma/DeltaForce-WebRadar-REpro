@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay 管理后台</title>
+<style>
+  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #e6edf3; --dim: #8b949e; --accent: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922; --purple: #bc8cff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Login ── */
+  .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 360px; }
+  .login-box h1 { font-size: 20px; margin-bottom: 24px; text-align: center; color: var(--accent); }
+  .login-box input { width: 100%; padding: 10px 14px; margin-bottom: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+  .login-box input:focus { border-color: var(--accent); }
+  .login-box button { width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .login-box button:hover { opacity: 0.9; }
+  .login-err { color: var(--red); font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; }
+
+  /* ── Dashboard ── */
+  .dashboard { display: none; max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .header h1 { font-size: 22px; color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-right .uptime { color: var(--dim); font-size: 13px; }
+  .btn-sm { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; cursor: pointer; }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  /* ── Stats ── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+  .stats2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .stat-card .label { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.accent { color: var(--accent); }
+  .stat-card .value.yellow { color: var(--yellow); }
+  .stat-card .value.red { color: var(--red); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab { padding: 8px 18px; border-radius: 8px 8px 0 0; background: var(--card); border: 1px solid var(--border); border-bottom: none; color: var(--dim); font-size: 14px; cursor: pointer; font-weight: 600; }
+  .tab.active { color: var(--accent); background: var(--bg); border-bottom: 2px solid var(--accent); }
+
+  /* ── Search ── */
+  .search-bar { margin-bottom: 14px; }
+  .search-bar input { width: 100%; max-width: 400px; padding: 9px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+  .search-bar input:focus { border-color: var(--accent); }
+  .search-bar input::placeholder { color: var(--dim); }
+
+  /* ── Table ── */
+  .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: rgba(110,118,129,0.1); padding: 10px 14px; text-align: left; color: var(--dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid var(--border); }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(88,166,255,0.04); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-yellow { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-dim { background: rgba(139,148,158,0.15); color: var(--dim); }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--purple); }
+  .ip { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--dim); }
+  .empty { padding: 40px; text-align: center; color: var(--dim); }
+  .action-btn { padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--dim); font-size: 12px; cursor: pointer; margin-right: 4px; }
+  .action-btn:hover { border-color: var(--red); color: var(--red); }
+  .action-btn.unban { color: var(--green); }
+  .action-btn.unban:hover { border-color: var(--green); }
+  .action-btn.enter { color: var(--accent); }
+  .action-btn.enter:hover { border-color: var(--accent); background: rgba(88,166,255,0.1); }
+
+  /* ── Filter bar ── */
+  .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-bar input { max-width: 320px; flex: 1; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
+  .filter-bar input:focus { border-color: var(--accent); }
+  .filter-bar input::placeholder { color: var(--dim); }
+  .filter-bar select { padding: 8px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+  .filter-bar select:focus { border-color: var(--accent); }
+
+  /* ── Pagination ── */
+  .pager { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; color: var(--dim); font-size: 13px; }
+  .pager-btns { display: flex; gap: 6px; }
+  .pager-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 12px; cursor: pointer; }
+  .pager-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .pager-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+  /* ── Modal ── */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:860px; width:90%; max-height:80vh; overflow-y:auto; }
+  .modal h2 { font-size:18px; color:var(--accent); margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+  .modal h2 .close-btn { cursor:pointer; font-size:20px; color:var(--dim); background:none; border:none; padding:4px 8px; }
+  .modal h2 .close-btn:hover { color:var(--red); }
+  .modal table { width:100%; border-collapse:collapse; font-size:12px; }
+  .modal thead th { background:rgba(110,118,129,0.1); padding:8px 10px; text-align:left; color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .modal tbody td { padding:8px 10px; border-bottom:1px solid var(--border); }
+  .modal tbody tr:hover { background:rgba(88,166,255,0.04); }
+  .stat-card.clickable { cursor:pointer; transition:border-color 0.2s; }
+  .stat-card.clickable:hover { border-color:var(--accent); }
+
+  /* ── Custom Confirm Dialog ── */
+  .confirm-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; }
+  .confirm-overlay.show { display:flex; }
+  .confirm-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:28px 32px; max-width:400px; width:85%; text-align:center; }
+  .confirm-box .confirm-msg { font-size:15px; color:var(--text); margin-bottom:20px; line-height:1.5; }
+  .confirm-box .confirm-btns { display:flex; gap:12px; justify-content:center; }
+  .confirm-box .cbtn { padding:8px 24px; border-radius:8px; border:1px solid var(--border); font-size:14px; cursor:pointer; font-weight:600; }
+  .confirm-box .cbtn-cancel { background:var(--card); color:var(--dim); }
+  .confirm-box .cbtn-cancel:hover { border-color:var(--dim); color:var(--text); }
+  .confirm-box .cbtn-ok { background:var(--red); color:#fff; border-color:var(--red); }
+  .confirm-box .cbtn-ok:hover { opacity:0.85; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stats2 { grid-template-columns: repeat(2, 1fr); }
+    .dashboard { padding: 12px; }
+  }
+
+  /* ── Auto-refresh indicator ── */
+  .refresh-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+
+<!-- Custom Confirm Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-btns">
+      <button class="cbtn cbtn-cancel" id="confirmNo">取消</button>
+      <button class="cbtn cbtn-ok" id="confirmYes">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login -->
+<div id="loginView" class="login-wrap">
+  <div class="login-box">
+    <h1>Relay 管理后台</h1>
+    <input type="text" id="loginUser" placeholder="账号" autocomplete="username">
+    <input type="password" id="loginPass" placeholder="密码" autocomplete="current-password">
+    <button onclick="doLogin()">登录</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashView" class="dashboard">
+  <div class="header">
+    <h1>Relay 管理后台</h1>
+    <div class="header-right">
+      <span class="uptime">运行: <b id="uptime">-</b></span>
+      <span><span class="refresh-dot"></span> <span style="color:var(--dim);font-size:12px">3s刷新</span></span>
+      <button class="btn-sm" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">房间数</div><div class="value accent" id="sRooms">0</div></div>
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">DLL 连接</div><div class="value green" id="sPubs">0</div></div>
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">观看者</div><div class="value yellow" id="sSubs">0</div></div>
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">封禁 IP</div><div class="value red" id="sBans">0</div></div>
+  </div>
+  <div class="stats2">
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">⬇ 下载速率 (DLL→服务器)</div><div class="value green" id="sDlSec" style="font-size:20px">0 B/s</div></div>
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">⬆ 上传速率 (服务器→观看者)</div><div class="value accent" id="sUlSec" style="font-size:20px">0 B/s</div></div>
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">⬇ 下载总量</div><div class="value" style="font-size:20px;color:var(--dim)" id="sDlTotal">0 B</div></div>
+    <div class="stat-card clickable" onclick="showHistory()"><div class="label">⬆ 上传总量</div><div class="value" style="font-size:20px;color:var(--dim)" id="sUlTotal">0 B</div></div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal-overlay" id="historyModal" onclick="if(event.target===this)closeHistory()">
+    <div class="modal">
+      <h2>每日峰值统计 <button class="close-btn" onclick="closeHistory()">✖</button></h2>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+        <button class="action-btn" onclick="clearHistAll()" style="color:var(--red)">清空全部</button>
+        <span style="color:var(--dim);font-size:12px">保留最近</span>
+        <button class="action-btn" onclick="clearHistKeep(7)">7天</button>
+        <button class="action-btn" onclick="clearHistKeep(30)">30天</button>
+        <button class="action-btn" onclick="clearHistKeep(60)">60天</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th>日期</th><th>房间峰值</th><th>DLL峰值</th><th>观看峰值</th><th>封禁峰值</th><th>下载峰值/s</th><th>上传峰值/s</th><th>当日下载</th><th>当日上传</th><th>操作</th>
+        </tr></thead>
+        <tbody id="historyBody"><tr><td colspan="10" class="empty">加载中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Room History Modal -->
+  <div class="modal-overlay" id="roomHistModal" onclick="if(event.target===this)closeRoomHist()">
+    <div class="modal">
+      <h2>房间历史统计: <span id="roomHistKey" style="color:var(--accent)"></span> <button class="close-btn" onclick="closeRoomHist()">✖</button></h2>
+      <table>
+        <thead><tr>
+          <th>日期</th><th>观看峰值</th><th>msg/s 峰值</th><th>带宽峰值/s</th><th>当日流量</th><th>DLL活跃</th>
+        </tr></thead>
+        <tbody id="roomHistBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('rooms')">房间列表</div>
+    <div class="tab" onclick="switchTab('bans')">封禁列表</div>
+  </div>
+
+  <!-- Rooms Tab -->
+  <div id="tabRooms">
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="搜索房间号..." oninput="onRoomFilter()">
+      <select id="filterDLL" onchange="onRoomFilter()"><option value="">DLL: 全部</option><option value="on">在线</option><option value="off">离线</option></select>
+      <select id="filterGame" onchange="onRoomFilter()"><option value="">地图: 全部</option><option value="in">游戏中</option><option value="out">未在游戏</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>房间号</th><th>DLL</th><th>观看</th><th>地图</th><th>DLL IP</th><th>DLL 在线</th><th>房间存活</th><th>msg/s</th><th>带宽/s</th><th>总流量</th><th>操作</th>
+        </tr></thead>
+        <tbody id="roomsBody"><tr><td colspan="11" class="empty">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager" id="roomsPager"></div>
+  </div>
+
+  <!-- Bans Tab -->
+  <div id="tabBans" style="display:none">
+    <div class="filter-bar">
+      <input type="text" id="banSearchInput" placeholder="搜索封禁IP..." oninput="onBanFilter()">
+      <select id="filterBanSrc" onchange="onBanFilter()"><option value="">来源: 全部</option><option value="relay">Relay(WS)</option><option value="admin">管理后台</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>IP 地址</th><th>来源</th><th>封禁原因</th><th>封禁等级</th><th>剩余时间</th><th>操作</th>
+        </tr></thead>
+        <tbody id="bansBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager" id="bansPager"></div>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+const PAGE_SIZE = 100;
+let token = localStorage.getItem('admin_token') || '';
+let currentTab = 'rooms';
+let refreshTimer = null;
+
+// ── State ──
+let _allRooms = [], _allBans = [];
+let roomPage = 0, banPage = 0;
+
+// ── Auth ──
+async function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  err.textContent = '';
+  try {
+    const res = await fetch(API + '/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, pass })
+    });
+    const data = await res.json();
+    if (data.ok) { token = data.token; localStorage.setItem('admin_token', token); showDashboard(); }
+    else { err.textContent = data.remain > 0 ? `IP 已冻结，请等待 ${data.remain} 秒` : (data.error || '登录失败'); }
+  } catch (e) { err.textContent = '网络错误或IP被封禁'; }
+}
+function doLogout() { token = ''; localStorage.removeItem('admin_token'); document.getElementById('loginView').style.display = 'flex'; document.getElementById('dashView').style.display = 'none'; if (refreshTimer) clearInterval(refreshTimer); }
+async function showDashboard() { document.getElementById('loginView').style.display = 'none'; document.getElementById('dashView').style.display = 'block'; await refreshData(); if (refreshTimer) clearInterval(refreshTimer); refreshTimer = setInterval(refreshData, 3000); }
+
+// ── API ──
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Authorization': 'Bearer ' + token } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  if (res.status === 403 || res.status === 429) { const d = await res.json(); if (d.remain > 0) alert(`IP 被限制，剩余 ${d.remain} 秒`); throw new Error(d.error); }
+  return res.json();
+}
+
+// ── Data refresh ──
+async function refreshData() {
+  try {
+    const q = document.getElementById('searchInput').value.trim();
+    const data = await api('/api/rooms?q=' + encodeURIComponent(q));
+    if (!data.ok) return;
+    renderStats(data.stats);
+    _allRooms = data.rooms || [];
+    applyRoomFilters();
+    if (currentTab === 'bans') {
+      const bData = await api('/api/bans');
+      if (bData.ok) { buildBanList(bData.bans || [], bData.adminBans || []); applyBanFilters(); }
+    }
+  } catch (e) { console.error(e); }
+}
+
+function renderStats(s) {
+  document.getElementById('sRooms').textContent = s.rooms;
+  document.getElementById('sPubs').textContent = s.pubs;
+  document.getElementById('sSubs').textContent = s.subs;
+  document.getElementById('sBans').textContent = s.bans;
+  document.getElementById('uptime').textContent = s.uptime;
+  document.getElementById('sDlSec').textContent = s.dlPerSecStr || '0 B/s';
+  document.getElementById('sUlSec').textContent = s.ulPerSecStr || '0 B/s';
+  document.getElementById('sDlTotal').textContent = s.dlTotalStr || '0 B';
+  document.getElementById('sUlTotal').textContent = s.ulTotalStr || '0 B';
+}
+
+// ── Room filtering + pagination ──
+function applyRoomFilters() {
+  const dllF = document.getElementById('filterDLL').value;
+  const gameF = document.getElementById('filterGame').value;
+  let list = _allRooms;
+  if (dllF === 'on') list = list.filter(r => r.hasPub);
+  else if (dllF === 'off') list = list.filter(r => !r.hasPub);
+  if (gameF === 'in') list = list.filter(r => r.inGame);
+  else if (gameF === 'out') list = list.filter(r => !r.inGame);
+  renderPagedRooms(list);
+}
+function renderPagedRooms(list) {
+  const total = list.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (roomPage >= pages) roomPage = pages - 1;
+  const start = roomPage * PAGE_SIZE;
+  const slice = list.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('roomsBody');
+  if (!slice.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">暂无活跃房间</td></tr>'; }
+  else {
+    tbody.innerHTML = slice.map(r => `<tr>
+      <td class="mono" style="cursor:pointer;text-decoration:underline" onclick="showRoomHist('${escAttr(r.key)}')">${esc(r.key)}</td>
+      <td>${r.hasPub ? '<span class="badge badge-green">在线</span>' : '<span class="badge badge-dim">离线</span>'}</td>
+      <td><b>${r.subs}</b><span style="color:var(--dim)"> / 4</span></td>
+      <td>${r.inGame ? '<span class="badge badge-green">' + esc(shortMap(r.mapName)) + '</span>' : '<span class="badge badge-dim">' + esc(r.mapName) + '</span>'}</td>
+      <td class="ip">${esc(r.pubIP)}</td>
+      <td>${r.pubUptime}</td>
+      <td>${r.createdAgo}</td>
+      <td style="color:var(--yellow)">${r.msgPerSec || 0}</td>
+      <td style="color:var(--accent)">${r.bwStr || '0 B/s'}</td>
+      <td style="color:var(--dim)">${r.totalBytesStr || '0B'}</td>
+      <td>
+        <button class="action-btn enter" onclick="openRoom('${escAttr(r.key)}')">进入</button>
+        <button class="action-btn" onclick="kickRoom('${escAttr(r.key)}','all')">关闭</button>
+      </td>
+    </tr>`).join('');
+  }
+  renderPager('roomsPager', total, pages, roomPage, p => { roomPage = p; applyRoomFilters(); });
+}
+
+// ── Ban filtering + pagination ──
+let _mergedBans = [];
+function buildBanList(relay, admin) {
+  _mergedBans = [];
+  relay.forEach(b => _mergedBans.push({...b, src: 'Relay(WS)', srcKey: 'relay'}));
+  admin.forEach(b => _mergedBans.push({...b, src: '管理后台', srcKey: 'admin'}));
+  _mergedBans.sort((a,b) => (b.remainMs||0) - (a.remainMs||0));
+}
+function applyBanFilters() {
+  const q = (document.getElementById('banSearchInput')?.value || '').trim();
+  const srcF = document.getElementById('filterBanSrc').value;
+  let list = _mergedBans;
+  if (q) list = list.filter(b => b.ip.includes(q));
+  if (srcF) list = list.filter(b => b.srcKey === srcF);
+  renderPagedBans(list);
+}
+function renderPagedBans(list) {
+  const total = list.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (banPage >= pages) banPage = pages - 1;
+  const start = banPage * PAGE_SIZE;
+  const slice = list.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('bansBody');
+  const lvNames = ['', '1分钟', '10分钟', '30分钟', '1小时'];
+  if (!slice.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无封禁IP</td></tr>'; }
+  else {
+    tbody.innerHTML = slice.map(b => {
+      const lvText = b.level != null ? `Lv${b.level} (${lvNames[b.level]||'?'})` : '-';
+      const reasonMap = {'auth_flood':'认证刷屏','pub_flood':'发布刷屏','msg_too_large':'消息过大','admin_manual':'手动封禁','admin_rate_burst':'后台访问过快','admin_rate_flood_1h':'后台反复刷屏','admin_login_fail_5x':'登录失5次'};
+      const reason = b.reason ? (reasonMap[b.reason] || b.reason) : '-';
+      return `<tr>
+      <td class="ip">${esc(b.ip)}</td>
+      <td><span class="badge ${b.srcKey==='admin'?'badge-yellow':'badge-red'}">${esc(b.src)}</span></td>
+      <td>${esc(reason)}</td>
+      <td>${b.level != null ? '<span class="badge badge-red">'+lvText+'</span>' : '-'}</td>
+      <td>${b.remain}</td>
+      <td><button class="action-btn unban" onclick="unbanIP('${escAttr(b.ip)}')">解封</button></td>
+    </tr>`;
+    }).join('');
+  }
+  renderPager('bansPager', total, pages, banPage, p => { banPage = p; applyBanFilters(); });
+}
+
+// ── Pager ──
+function renderPager(id, total, pages, current, onPage) {
+  const el = document.getElementById(id);
+  if (pages <= 1) { el.innerHTML = `<span>共 ${total} 条</span><span></span>`; return; }
+  el.innerHTML = `<span>共 ${total} 条，第 ${current+1}/${pages} 页</span>
+    <div class="pager-btns">
+      <button class="pager-btn ${current<=0?'disabled':''}" id="${id}_prev">上一页</button>
+      <button class="pager-btn ${current>=pages-1?'disabled':''}" id="${id}_next">下一页</button>
+    </div>`;
+  document.getElementById(id+'_prev').onclick = () => { if (current > 0) onPage(current - 1); };
+  document.getElementById(id+'_next').onclick = () => { if (current < pages - 1) onPage(current + 1); };
+}
+
+// ── Actions ──
+function openRoom(key) {
+  const port = '1010';
+  window.open('http://' + location.hostname + ':' + port + '/?key=' + encodeURIComponent(key), '_blank');
+}
+async function kickRoom(key, target) { if (!await customConfirm(`确认关闭房间 [${key}]？`)) return; await api('/api/kick','POST',{key,target}); refreshData(); }
+async function unbanIP(ip) { if (!await customConfirm(`确认解封 ${ip}？`)) return; await api('/api/ban','POST',{unban:ip}); refreshData(); }
+
+// ── Tab ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab:nth-child(${tab==='rooms'?1:2})`).classList.add('active');
+  document.getElementById('tabRooms').style.display = tab==='rooms'?'':'none';
+  document.getElementById('tabBans').style.display = tab==='bans'?'':'none';
+  refreshData();
+}
+
+function onRoomFilter() { roomPage = 0; refreshData(); }
+
+// ── History Modal ──
+async function showHistory() {
+  document.getElementById('historyModal').classList.add('show');
+  try {
+    const data = await api('/api/history');
+    if (!data.ok || !data.history) return;
+    const tbody = document.getElementById('historyBody');
+    if (!data.history.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">暂无历史数据</td></tr>'; return; }
+    tbody.innerHTML = data.history.map((d,i) => {
+      const isToday = i === 0;
+      const rowStyle = isToday ? ' style="background:rgba(88,166,255,0.06)"' : '';
+      return `<tr${rowStyle}>
+        <td style="color:var(--accent);font-weight:600">${esc(d.date)}${isToday?' (今天)':''}</td>
+        <td>${d.peakRooms}</td>
+        <td style="color:var(--green)">${d.peakPubs}</td>
+        <td style="color:var(--yellow)">${d.peakSubs}</td>
+        <td style="color:var(--red)">${d.peakBans}</td>
+        <td style="color:var(--green)">${esc(d.peakDlSecStr)}</td>
+        <td style="color:var(--accent)">${esc(d.peakUlSecStr)}</td>
+        <td style="color:var(--dim)">${esc(d.dlDayStr)}</td>
+        <td style="color:var(--dim)">${esc(d.ulDayStr)}</td>
+        <td><button class="action-btn" onclick="clearHistDate('${esc(d.date)}')" style="color:var(--red);font-size:11px">删除</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+function closeHistory() { document.getElementById('historyModal').classList.remove('show'); }
+// ── Custom Confirm ──
+function customConfirm(msg) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmMsg').textContent = msg;
+    overlay.classList.add('show');
+    const yes = document.getElementById('confirmYes');
+    const no = document.getElementById('confirmNo');
+    function cleanup(val) { overlay.classList.remove('show'); yes.onclick = null; no.onclick = null; resolve(val); }
+    yes.onclick = () => cleanup(true);
+    no.onclick = () => cleanup(false);
+  });
+}
+
+async function clearHistDate(date) {
+  if (!await customConfirm('确定删除 ' + date + ' 的数据？')) return;
+  await api('/api/clear_history', 'POST', { mode:'date', date });
+  showHistory();
+}
+async function clearHistAll() {
+  if (!await customConfirm('确定清空全部历史数据？此操作不可恢复！')) return;
+  await api('/api/clear_history', 'POST', { mode:'all' });
+  showHistory();
+}
+async function clearHistKeep(days) {
+  if (!await customConfirm('确定只保留最近 ' + days + ' 天数据？')) return;
+  await api('/api/clear_history', 'POST', { mode:'days', days });
+  showHistory();
+}
+
+async function showRoomHist(key) {
+  document.getElementById('roomHistKey').textContent = key;
+  document.getElementById('roomHistModal').classList.add('show');
+  try {
+    const data = await api('/api/room_history?key=' + encodeURIComponent(key));
+    if (!data.ok || !data.history) return;
+    const tbody = document.getElementById('roomHistBody');
+    if (!data.history.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无历史数据</td></tr>'; return; }
+    tbody.innerHTML = data.history.map((d,i) => {
+      const isToday = i === 0;
+      const rs = isToday ? ' style="background:rgba(88,166,255,0.06)"' : '';
+      return `<tr${rs}>
+        <td style="color:var(--accent);font-weight:600">${esc(d.date)}${isToday?' (今天)':''}</td>
+        <td style="color:var(--yellow)">${d.peakSubs}</td>
+        <td>${d.peakMsgSec}</td>
+        <td style="color:var(--green)">${esc(d.peakBwSecStr)}</td>
+        <td style="color:var(--dim)">${esc(d.totalBytesStr)}</td>
+        <td>${esc(d.activeStr)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+function closeRoomHist() { document.getElementById('roomHistModal').classList.remove('show'); }
+function onBanFilter() { banPage = 0; applyBanFilters(); }
+function shortMap(m) { if (!m||m==='-') return '-'; const p = m.indexOf('_'); return p > 0 ? m.substring(0, p) : m; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return esc(s).replace(/'/g,"\\'"); }
+
+// ── Init ──
+(async () => {
+  if (token) { try { const r = await api('/api/stats'); if (r.ok) { showDashboard(); return; } } catch {} }
+  document.getElementById('loginView').style.display = 'flex';
+})();
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('loginPass').focus(); });
+</script>
+</body>
+</html>
