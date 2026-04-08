@@ -6,23 +6,29 @@
 
 ---
 
-## � 效果预览
+## 📸 效果预览
 
 ### 🖤 暗色主题 (Dark Theme)
 
 | 登录页 | 对局中 |
 |:---:|:---:|
-| ![Dark Login](screenshots/dark-login.png) | ![Dark InGame](screenshots/dark-ingame.png) |
+| ![Dark Login](screenshots/dark-login.jpg) | ![Dark InGame](screenshots/dark-ingame.jpg) |
 
 ### 🤍 浅色主题 (Light Theme)
 
 | 登录页 | 对局中 |
 |:---:|:---:|
-| ![Light Login](screenshots/light-login.png) | ![Light InGame](screenshots/light-ingame.png) |
+| ![Light Login](screenshots/light-login.jpg) | ![Light InGame](screenshots/light-ingame.jpg) |
+
+### 🔧 管理后台 (Admin Dashboard，两套通用)
+
+| 房间列表 & 实时数据 | 每日峰值统计 |
+|:---:|:---:|
+| ![Admin Rooms](screenshots/admin-rooms.jpg) | ![Admin Stats](screenshots/admin-stats.jpg) |
 
 ---
 
-## �📁 项目结构
+## 📁 项目结构
 
 ```
 ├── 黑色前端后端/              # 暗色主题版本
