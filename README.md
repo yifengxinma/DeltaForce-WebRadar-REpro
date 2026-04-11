@@ -305,7 +305,50 @@ DLL端(pub)                     Relay(:5000)                    网页端(sub)
 
 ---
 
-## �📊 管理后台功能
+## 🧪 测试客户端 (ws_test_client.cpp)
+
+仓库根目录附带一个 C++ 编写的 **WebSocket 测试客户端**，可模拟 DLL 端向 Relay 发送假数据，方便开发调试前端而无需实际运行游戏。
+
+### 编译
+
+```bash
+# MSVC (Visual Studio Developer Command Prompt)
+cl /EHsc /O2 /utf-8 /Fe:ws_test_client.exe ws_test_client.cpp /link ws2_32.lib
+
+# MinGW
+g++ -O2 -o ws_test_client.exe ws_test_client.cpp -lws2_32
+```
+
+### 运行
+
+```
+ws_test_client.exe
+========================================
+  WebSocket 雷达测试客户端
+========================================
+
+服务器地址 [127.0.0.1]:    ← 输入你的 Relay 服务器 IP，回车用默认
+端口 [5000]:                ← 回车用默认
+房间号 [repro]:             ← 输入房间号，回车用默认
+```
+
+### 发送的模拟数据
+
+| 数据类型 | 频率 | 内容 |
+|---|---|---|
+| `mapName` | 启动时发送一次 | `SpaceCenter_Level_Main`（航天基地） |
+| `self` | 每 100ms | 自身位置缓慢随机移动 |
+| `players` | 每 100ms | 3 个敌人 + 2 个 AI + 1 个队友 |
+| `items` | 每 1.5s | 5 个随机物品（弹药、武器、护甲等） |
+| `containers` | 每 1.5s | 2 个保险箱 |
+| `exits` | 每 1.5s | 2 个撤离点（1 普通 + 1 安全） |
+| `boxes` | 每 1.5s | 1 个死亡盒 |
+
+> **对接提示**：只需将测试客户端的 IP 改为你部署的 Relay 地址，房间号输入你前端连接时使用的房间号，前端即可看到模拟数据在地图上移动。
+
+---
+
+## � 管理后台功能
 
 - 实时查看所有活跃房间、在线人数
 - 全局流量统计（上传/下载速率 + 历史累计）
