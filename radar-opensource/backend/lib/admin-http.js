@@ -1047,10 +1047,13 @@ function createAdminHttp({
         const body = await parseBody(req);
         const roomKey = String(body.key || '');
         if (!roomKey) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end('{"ok":false,"error":"missing key"}'); return; }
-        const ok = recorder.stopRecording(roomKey);
-        audit.write('recording_stop', { ...auditCtx(req), extra: { key: roomKey } });
+        const result = recorder.stopRecording(roomKey);
+        if (result === null) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end('{"ok":false,"error":"not recording"}'); return; }
+        // result 为录制对象时表示已落盘; true 表示空录制已丢弃
+        const saved = (result && typeof result === 'object') ? result : null;
+        audit.write('recording_stop', { ...auditCtx(req), extra: { key: roomKey, id: saved ? saved.id : '', saved: !!saved } });
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok }));
+        res.end(JSON.stringify({ ok: true, saved: !!saved, recording: saved }));
       } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: e.message })); }
       return;
     }

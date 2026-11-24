@@ -92,18 +92,24 @@ class RoomRecorder {
     return recording;
   }
 
-  // 停止录制（不保存）
+  // 停止录制：有数据则保存（等同 pause），无数据直接丢弃
+  //
+  // 历史行为是「停止即丢弃」，但后台只有 pause 会落盘，调用 /api/recording/stop
+  // 的客户端会静默丢失整段录制。这里改为：有消息就落盘，空录制才丢弃。
   stop() {
     if (!this.isRecording) return false;
-    
-    this.isRecording = false;
-    this.messages = [];
-    this.recordingId = null;
-    this.startTime = null;
-    this.endTime = null;
-    
-    log.info(`Stopped recording for room ${this.roomKey}`);
-    return true;
+
+    if (this.messages.length === 0) {
+      this.isRecording = false;
+      this.messages = [];
+      this.recordingId = null;
+      this.startTime = null;
+      this.endTime = null;
+      log.info(`Stopped empty recording for room ${this.roomKey} (discarded)`);
+      return true;
+    }
+
+    return this.pause();
   }
 
   // 记录消息
@@ -210,10 +216,10 @@ class RecorderManager {
     return recorder.pause();
   }
 
-  // 停止录制房间
+  // 停止录制房间：有数据会落盘并返回录制信息；空录制返回 true；无录制器返回 null
   stopRecording(roomKey) {
     const recorder = this.recorders.get(roomKey);
-    if (!recorder) return false;
+    if (!recorder) return null;
     const result = recorder.stop();
     // 如果录制已停止，移除录制器
     if (!recorder.isRecording && !recorder.recordingId) {
