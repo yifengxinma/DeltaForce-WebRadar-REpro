@@ -1,0 +1,17 @@
+{
+  "name": "radar-relay",
+  "version": "1.8.0",
+  "main": "relay.js",
+  "scripts": {
+    "start": "node relay.js",
+    "check": "node --check relay.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "WebSocket relay server for Delta Force radar",
+  "dependencies": {
+    "pg": "^8.16.0",
+    "ws": "^8.20.0"
+  }
+}

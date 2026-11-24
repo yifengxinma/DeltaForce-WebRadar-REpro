@@ -1,0 +1,10 @@
+# 本地配置和运行文件
+.env
+.env.*
+*.local.js
+node_modules/
+*.log
+*.bak
+*.zip
+.DS_Store
+Thumbs.db

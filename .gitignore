@@ -35,3 +35,11 @@ Desktop.ini
 # 日志
 *.log
 npm-debug.log*
+
+# ── 新版 radar-opensource（并存目录）──
+# 上传/下载的压缩包与临时目录不入库
+google_drive/
+*.zip
+
+# npm ci 需要锁文件：覆盖上面对 package-lock.json 的忽略
+!radar-opensource/backend/package-lock.json
