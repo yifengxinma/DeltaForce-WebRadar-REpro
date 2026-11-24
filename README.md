@@ -95,17 +95,31 @@ node serve_frontend.js
 
 前端 `/api/*` 与 `/ws` 会自动代理到本机后端，**页面里无需填写服务器地址**。
 
-### 6. 地图资源（可选）
+### 6. 地图资源
 
-新版**不打包第三方地图图片**。不配置时页面显示坐标、区域与标记回退，且浏览器**零外部请求**。要显示完整地图，编辑 `frontend/config.js`：
+`frontend/config.js` 已配好官方公开资源地址，**开箱即有地图**：
 
 ```js
-tileBase: '你的瓦片地址/{layer}/{z}_{x}_{y}.jpg',
-itemIconBase: '你的图标地址/',      // {itemId}.png
-markerIconBase: '你的标记地址/',    // bxx / xbxx / dtcld / cgcld
+tileBase: 'https://game.gtimg.cn/images/dfm/cp/a20240729directory/img/',   // {layer}/{z}_{x}_{y}.jpg
+itemIconBase: 'https://playerhub.df.qq.com/playerhub/60004/object/',      // {itemId}.png
+markerIconBase: 'https://game.gtimg.cn/images/dfm/cp/a20240729directory/img/lv3/', // bxx/xbxx/dtcld/cgcld
 ```
 
-### 7. 生产化（Nginx 反代示例）
+**改自建图床**：把瓦片按 `{layer}/{z}_{x}_{y}.jpg` 目录结构放到 `frontend/` 下（例如 `frontend/tiles/map_db/…`），然后把 `tileBase` 改成 `'/tiles/'` 即可，浏览器不再依赖外部域名。
+**完全离线**：三项地址都留空，页面退化为坐标 + 区域 + 标记渲染，浏览器零外部请求。
+
+### 7. 调试用推流模拟器
+
+没有游戏 DLL 时，用自带模拟器往房间里灌假数据，前端立刻能看到移动的玩家：
+
+```bash
+node radar-opensource/tools/simulate_pub.js --key 8888 --map daba --rate 10 --count 6
+node radar-opensource/tools/simulate_pub.js --map list     # 列出全部地图
+```
+
+然后打开 `http://127.0.0.1:8080/black/?key=8888`。模拟器会推送 `mapName` + `self`/`players`/`bots`（10Hz）+ `items`/`containers`/`exits`/`boxes`（1.5Hz），格式与真实 DLL 完全一致，断线自动重连。
+
+### 8. 生产化（Nginx 反代示例）
 
 ```nginx
 map $http_upgrade $radar_conn { default upgrade; '' close; }
