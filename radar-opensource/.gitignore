@@ -1,0 +1,26 @@
+# 私有配置与运行数据
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.local.js
+**/data/
+**/recordings/
+**/node_modules/
+**/current
+*.log
+*.bak
+*.zip
+*.pem
+*.key
+*.pfx
+*.p12
+**/.codex/
+**/.playwright-cli/
+**/playwright-report/
+.DS_Store
+Thumbs.db
+
+*storage-state*.json
+*.session
+*.history

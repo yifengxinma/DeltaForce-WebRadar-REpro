@@ -1,0 +1,24 @@
+{
+  "format": "lossless WebP",
+  "dimensions": [
+    3840,
+    2160
+  ],
+  "images": [
+    {
+      "file": "backend/assets/admin-bg-dark.webp",
+      "original_bytes": 12419603,
+      "compressed_bytes": 5740624,
+      "rgba_pixels_equal": true
+    },
+    {
+      "file": "backend/assets/admin-bg-light.webp",
+      "original_bytes": 9928374,
+      "compressed_bytes": 4495446,
+      "rgba_pixels_equal": true
+    }
+  ],
+  "total_original_bytes": 22347977,
+  "total_compressed_bytes": 10236070,
+  "reduction_percent": 54.2
+}

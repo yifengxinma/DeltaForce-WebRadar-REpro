@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' ; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https: http:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay Admin</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="stylesheet" href="admin.css?v=20260913align">
+
+<!-- 图表脚本使用随包提供的本地版本。 -->
+<script src="/assets/echarts.min.js"></script>
+<script src="admin-echarts-fallback.js"></script>
+</head>
+<body>
+
+<!-- Custom Confirm / Prompt Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box" id="confirmBox" data-type="warn">
+    <div class="prompt-hero">
+      <div class="prompt-avatar">
+        <img src="/assets/favicon.svg" alt="" width="72" height="72">
+        <span class="prompt-badge" id="confirmBadge" aria-hidden="true"></span>
+      </div>
+    </div>
+    <div class="confirm-title" id="confirmTitle"></div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-btns">
+      <button class="cbtn cbtn-cancel" id="confirmNo" data-i18n="cancel">取消</button>
+      <button class="cbtn cbtn-ok" id="confirmYes" data-i18n="confirm">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 公告编辑弹窗 -->
+<div class="modal-overlay" id="annModal">
+  <div class="modal" style="max-width:560px">
+    <h2><span id="annModalTitle" data-i18n="ann_modal_title_new">新建公告</span><button class="close-btn" data-admin-action="closeAnnModal">×</button></h2>
+    <div class="form-modal-inner">
+      <div class="form-row">
+        <label data-i18n="ann_field_title">标题</label>
+        <input type="text" id="annFTitle" maxlength="200" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label data-i18n="ann_field_type">类型</label>
+        <div class="ann-type-picker">
+          <button type="button" class="ann-type-opt info" data-type="info">
+            <span class="dot"></span><span data-i18n="ann_type_info">提示</span>
+          </button>
+          <button type="button" class="ann-type-opt success" data-type="success">
+            <span class="dot"></span><span data-i18n="ann_type_success">成功</span>
+          </button>
+          <button type="button" class="ann-type-opt warn" data-type="warn">
+            <span class="dot"></span><span data-i18n="ann_type_warn">警告</span>
+          </button>
+          <button type="button" class="ann-type-opt error" data-type="error">
+            <span class="dot"></span><span data-i18n="ann_type_error">错误</span>
+          </button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label data-i18n="ann_field_content">内容（支持换行）</label>
+        <textarea id="annFContent" rows="6" maxlength="5000"></textarea>
+      </div>
+      <div class="form-row">
+        <label data-i18n="ann_field_display">展示样式</label>
+        <div class="ann-display-picker">
+          <button type="button" class="ann-display-opt" data-display="panel">
+            <span class="ico">▭</span><span data-i18n="ann_display_panel">面板</span>
+          </button>
+          <button type="button" class="ann-display-opt" data-display="modal">
+            <span class="ico">◫</span><span data-i18n="ann_display_modal">弹窗</span>
+          </button>
+          <button type="button" class="ann-display-opt" data-display="banner">
+            <span class="ico">▬</span><span data-i18n="ann_display_banner">横幅</span>
+          </button>
+          <button type="button" class="ann-display-opt" data-display="toast">
+            <span class="ico">●</span><span data-i18n="ann_display_toast">提示</span>
+          </button>
+        </div>
+        <div class="ann-display-hint" id="annDisplayHint" data-i18n="ann_display_hint_panel">仅在右下角铃铛面板出现</div>
+      </div>
+      <div class="form-row ann-flags">
+        <label class="ann-flag"><input type="checkbox" id="annFEnabled"><span data-i18n="ann_field_enabled">启用</span></label>
+        <label class="ann-flag"><input type="checkbox" id="annFPinned"><span data-i18n="ann_field_pinned">置顶</span></label>
+      </div>
+      <div class="form-msg" id="annFMsg"></div>
+      <div class="form-actions">
+        <button class="form-btn cancel" data-admin-action="closeAnnModal" data-i18n="cancel">取消</button>
+        <button class="form-btn primary" data-admin-action="submitAnn" data-i18n="submit">提交</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 修改密码弹窗 -->
+<div class="modal-overlay" id="changePassModal">
+  <div class="modal" style="max-width:380px">
+    <h2><span data-i18n="change_password">修改密码</span> <button class="close-btn" data-admin-action="closeChangePass">✖</button></h2>
+    <form class="form-modal-inner" autocomplete="on" onsubmit="return false">
+      <input type="text" name="username" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1">
+      <div class="form-row">
+        <label data-i18n="form_old_pass">原密码</label>
+        <input type="password" id="cpOldPass" autocomplete="current-password">
+      </div>
+      <div class="form-row">
+        <label data-i18n="form_new_pass">新密码 (≥4 位)</label>
+        <input type="password" id="cpNewPass" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label data-i18n="form_confirm_pass">确认新密码</label>
+        <input type="password" id="cpConfirmPass" autocomplete="new-password">
+      </div>
+      <div class="form-msg" id="cpMsg"></div>
+      <div class="form-actions">
+        <button type="button" class="form-btn cancel" data-admin-action="closeChangePass" data-i18n="cancel">取消</button>
+        <button type="button" class="form-btn primary" data-admin-action="submitChangePass" data-i18n="submit">提交</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 修改账号弹窗 -->
+<div class="modal-overlay" id="changeAccountModal">
+  <div class="modal" style="max-width:380px">
+    <h2><span data-i18n="change_account">修改账号</span> <button class="close-btn" data-admin-action="closeChangeAccount">✖</button></h2>
+    <form class="form-modal-inner" autocomplete="on" onsubmit="return false">
+      <div class="form-row">
+        <label data-i18n="form_new_user">新账号 (2-32 字符)</label>
+        <input type="text" id="caNewUser" autocomplete="username">
+      </div>
+      <div class="form-row">
+        <label data-i18n="form_current_pass">当前密码 (校验)</label>
+        <input type="password" id="caPass" autocomplete="current-password">
+      </div>
+      <div class="form-msg" id="caMsg"></div>
+      <div class="form-actions">
+        <button type="button" class="form-btn cancel" data-admin-action="closeChangeAccount" data-i18n="cancel">取消</button>
+        <button type="button" class="form-btn primary" data-admin-action="submitChangeAccount" data-i18n="submit">提交</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Login -->
+<div id="loginView" class="login-wrap" style="display:none">
+  <div class="login-bg-blobs">
+    <div class="login-blob blob-1"></div>
+    <div class="login-blob blob-2"></div>
+    <div class="login-blob blob-3"></div>
+  </div>
+  <div class="login-box">
+    <div class="login-logo-container">
+      <div class="login-logo-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          <path d="M2 12h20"></path>
+        </svg>
+      </div>
+    </div>
+    <h1 data-i18n="login_title">Relay 管理后台</h1>
+    <div class="login-subtitle">Holo Tactical Relay Console</div>
+    <form id="loginForm" autocomplete="on">
+    <div class="input-group">
+      <input type="text" id="loginUser" placeholder="账号" data-i18n-ph="login_user_ph" autocomplete="username">
+    </div>
+    <div class="input-group">
+      <input type="password" id="loginPass" placeholder="密码" data-i18n-ph="login_pass_ph" autocomplete="current-password">
+    </div>
+    <button type="submit" data-i18n="login_btn">登录</button>
+    </form>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- Dashboard (grid: sidebar + content) -->
+<div id="dashView" class="dashboard">
+
+  <!-- 左侧栏 -->
+  <aside class="app-sidebar">
+    <div class="app-logo" data-i18n="sidebar_logo">Relay 后台</div>
+    <nav class="app-nav">
+      <div class="app-nav-item active" data-view="dashboard">
+        <svg class="app-nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect>
+        </svg>
+        <span data-i18n="nav_dashboard">总览</span>
+      </div>
+      <div class="app-nav-item" data-view="theme">
+        <svg class="app-nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+        </svg>
+        <span data-i18n="nav_theme">主题</span>
+      </div>
+      <div class="app-nav-item" data-view="announcement">
+        <svg class="app-nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11l18-8v18l-18-8v-2z"></path>
+          <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
+        </svg>
+        <span data-i18n="nav_announcement">公告</span>
+      </div>
+      <div class="app-nav-item" data-view="security">
+        <svg class="app-nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span data-i18n="nav_security">安全</span>
+      </div>
+      <div class="app-nav-item" data-view="recordings">
+        <svg class="app-nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+        </svg>
+        <span data-i18n="nav_recordings">回放</span>
+      </div>
+      <div class="app-nav-item" data-view="about">
+        <svg class="app-nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span data-i18n="nav_about">关于</span>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- 右侧内容区 -->
+  <main class="app-content">
+
+  <!-- 全局右上角 Topbar (所有 view 共享) -->
+  <div class="app-topbar">
+    <!-- 运行时间 -->
+    <div class="topbar-uptime" data-i18n-title="title_uptime" title="服务运行时间">
+      <span class="refresh-dot"></span>
+      <span data-i18n="uptime">运行</span>
+      <b id="uptime">-</b>
+    </div>
+
+    <!-- 语言切换 -->
+    <div class="topbar-lang" data-i18n-title="title_lang" title="切换语言 / Language">
+      <button data-lang="zh" class="active">中</button>
+      <button data-lang="en">EN</button>
+    </div>
+
+    <!-- 主题切换 -->
+    <button class="topbar-btn" data-admin-action="toggleAdminTheme" data-i18n-title="title_theme" title="切换深/浅主题">
+      <svg class="ats-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+      <svg class="ats-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+      </svg>
+    </button>
+
+    <!-- 用户菜单 -->
+    <div class="topbar-user">
+      <button class="topbar-user-btn" id="userBtn" data-admin-action="toggleUserMenu" data-admin-pass-event="1">
+        <img class="user-avatar" id="userAvatar" src="/assets/favicon.svg" alt="" width="24" height="24">
+        <span class="user-name" id="userName">用户</span>
+        <svg class="user-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <div class="topbar-user-menu" id="userMenu">
+        <div class="tum-user-info">
+          <div class="tum-label" data-i18n="logged_in_as">当前账号</div>
+          <div class="tum-name" id="userNameFull">admin</div>
+        </div>
+        <div class="tum-item" data-admin-action="openChangeAccount">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span data-i18n="change_account">修改账号</span>
+        </div>
+        <div class="tum-item" data-admin-action="openChangePassword">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span data-i18n="change_password">修改密码</span>
+        </div>
+        <div class="tum-sep"></div>
+        <div class="tum-item danger" data-admin-action="doLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span data-i18n="logout">退出登录</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View: Dashboard (总览) -->
+  <div id="viewDashboard" class="app-view active">
+    <div class="app-view-header">
+      <h1 class="app-view-title" data-i18n="view_dashboard">总览</h1>
+      <span style="color:var(--dim);font-size:12px" data-i18n="dashboard_subtitle">实时数据 · 3s 自动刷新</span>
+    </div>
+
+  <div class="stats">
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_rooms">房间数</div><div class="value accent" id="sRooms">0</div></div>
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_pubs">DLL 连接</div><div class="value green" id="sPubs">0</div></div>
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_subs">观看者</div><div class="value yellow" id="sSubs">0</div></div>
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_bans">封禁 IP</div><div class="value red" id="sBans">0</div></div>
+  </div>
+  <div class="stats2">
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_dl_sec">⬇ 下载速率 (DLL→服务器)</div><div class="value green" id="sDlSec" style="font-size:20px">0 B/s</div></div>
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_ul_sec">⬆ 上传速率 (服务器→观看者)</div><div class="value accent" id="sUlSec" style="font-size:20px">0 B/s</div></div>
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_dl_total">⬇ 下载总量</div><div class="value" style="font-size:20px;color:var(--dim)" id="sDlTotal">0 B</div></div>
+    <div class="stat-card clickable"><div class="label" data-i18n="stat_ul_total">⬆ 上传总量</div><div class="value" style="font-size:20px;color:var(--dim)" id="sUlTotal">0 B</div></div>
+  </div>
+
+  <!-- History Modal：全屏铺满统计页 -->
+  <div class="modal-overlay hist-overlay" id="historyModal">
+    <div class="modal hist-sheet">
+      <div class="hist-head">
+        <h2><span data-i18n="daily_stats">每日峰值统计</span></h2>
+        <button class="close-btn hist-close" data-admin-action="closeHistory" aria-label="close">✕</button>
+      </div>
+
+      <div class="hist-toolbar">
+        <div class="hist-toolbar-main">
+          <div class="hist-field">
+            <span class="hist-field-label" data-i18n="hist_field_metric">指标</span>
+            <div class="hist-seg" data-hist="metric" id="histMetricSeg">
+              <button type="button" class="hist-seg-btn active" data-value="users" data-i18n="hist_seg_users">用户活跃</button>
+              <button type="button" class="hist-seg-btn" data-value="bw_peak" data-i18n="hist_seg_bw_peak">带宽峰值</button>
+              <button type="button" class="hist-seg-btn" data-value="bw_total" data-i18n="hist_seg_bw_total">当日流量</button>
+            </div>
+          </div>
+          <div class="hist-field">
+            <span class="hist-field-label" data-i18n="hist_field_chart">图表</span>
+            <div class="hist-seg" data-hist="type" id="histTypeSeg">
+              <button type="button" class="hist-seg-btn active" data-value="area" data-i18n="hist_seg_area">区域</button>
+              <button type="button" class="hist-seg-btn" data-value="line" data-i18n="hist_seg_line">折线</button>
+              <button type="button" class="hist-seg-btn" data-value="bar" data-i18n="hist_seg_bar">柱状</button>
+            </div>
+          </div>
+          <div class="hist-field">
+            <span class="hist-field-label" data-i18n="hist_field_range">范围</span>
+            <div class="hist-seg" data-hist="range" id="histRangeSeg">
+              <button type="button" class="hist-seg-btn" data-value="7" data-i18n="hist_seg_7d">7 天</button>
+              <button type="button" class="hist-seg-btn" data-value="15" data-i18n="hist_seg_15d">15 天</button>
+              <button type="button" class="hist-seg-btn active" data-value="30" data-i18n="hist_seg_30d">30 天</button>
+              <button type="button" class="hist-seg-btn" data-value="all" data-i18n="hist_seg_all">全部</button>
+            </div>
+          </div>
+        </div>
+        <div class="hist-actions">
+          <button class="hist-act danger" data-admin-action="clearHistAll"><span data-i18n="clear_all">清空全部</span></button>
+          <span class="hist-act-hint" data-i18n="keep_recent">保留最近</span>
+          <button class="hist-act" data-admin-action="clearHistKeep" data-admin-arg="7" data-i18n="keep_7d">7 天</button>
+          <button class="hist-act" data-admin-action="clearHistKeep" data-admin-arg="30" data-i18n="keep_30d">30 天</button>
+          <button class="hist-act" data-admin-action="clearHistKeep" data-admin-arg="60" data-i18n="keep_60d">60 天</button>
+        </div>
+      </div>
+
+      <input type="hidden" id="histMetric" value="users">
+      <input type="hidden" id="histType" value="area">
+      <input type="hidden" id="histRange" value="30">
+
+      <div class="hist-body">
+        <div class="hist-chart-wrap">
+          <div id="histChart"></div>
+        </div>
+        <div class="hist-table-wrap">
+          <table>
+            <thead><tr>
+              <th data-i18n="hist_th_date">日期</th>
+              <th data-i18n="hist_th_room_peak">房间峰值</th>
+              <th data-i18n="hist_th_dll_peak">DLL峰值</th>
+              <th data-i18n="hist_th_view_peak">观看峰值</th>
+              <th data-i18n="hist_th_ban_peak">封禁峰值</th>
+              <th data-i18n="hist_th_dl_peak">下载峰值/s</th>
+              <th data-i18n="hist_th_ul_peak">上传峰值/s</th>
+              <th data-i18n="hist_th_dl_day">当日下载</th>
+              <th data-i18n="hist_th_ul_day">当日上传</th>
+              <th data-i18n="th_action">操作</th>
+            </tr></thead>
+            <tbody id="historyBody"><tr><td colspan="10" class="empty" data-i18n="loading">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room History Modal -->
+  <div class="modal-overlay" id="roomHistModal">
+    <div class="modal">
+      <h2><span data-i18n="room_history_title">房间历史统计</span>: <span id="roomHistKey" style="color:var(--accent)"></span> <button class="close-btn" data-admin-action="closeRoomHist">✖</button></h2>
+      <table>
+        <thead><tr>
+          <th data-i18n="hist_th_date">日期</th><th data-i18n="rh_th_view_peak">观看峰值</th><th data-i18n="rh_th_msg_peak">msg/s 峰值</th><th data-i18n="rh_th_bw_peak">带宽峰值/s</th><th data-i18n="rh_th_day_traffic">当日流量</th><th data-i18n="rh_th_dll_active">DLL活跃</th>
+        </tr></thead>
+        <tbody id="roomHistBody"><tr><td colspan="6" class="empty" data-i18n="loading">加载中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="rooms" data-i18n="tab_rooms">房间列表</div>
+    <div class="tab" data-tab="bans" data-i18n="tab_bans">封禁列表</div>
+    <div class="tab" data-tab="banEvents" data-i18n="tab_ban_events">封禁记录</div>
+  </div>
+
+  <!-- Rooms Tab -->
+  <div id="tabRooms">
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="搜索房间号..." data-i18n-ph="ph_search_room">
+      <select id="filterDLL">
+        <option value="" data-i18n="filter_dll_all">DLL: 全部</option>
+        <option value="on" data-i18n="filter_dll_on">在线</option>
+        <option value="off" data-i18n="filter_dll_off">离线</option>
+      </select>
+      <select id="filterGame">
+        <option value="" data-i18n="filter_map_all">地图: 全部</option>
+        <option value="in" data-i18n="filter_map_in">游戏中</option>
+        <option value="out" data-i18n="filter_map_out">未在游戏</option>
+      </select>
+      <select id="roomsPerPage" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:12px">
+        <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option><option value="1000">1000</option><option value="10000">10000</option>
+      </select>
+      <span style="font-size:12px;color:var(--dim)" data-i18n="per_page">条/页</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th data-i18n="th_room">房间号</th><th data-i18n="th_dll">DLL</th><th data-i18n="th_view">观看</th><th data-i18n="th_map">地图</th><th data-i18n="th_dll_ip">DLL IP</th><th data-i18n="th_dll_online">DLL 在线</th><th data-i18n="th_room_uptime">房间存活</th><th data-i18n="th_msg_sec">msg/s</th><th data-i18n="th_bw_sec">带宽/s</th><th data-i18n="th_total">总流量</th><th data-i18n="th_action">操作</th>
+        </tr></thead>
+        <tbody id="roomsBody"><tr><td colspan="11" class="empty" data-i18n="loading">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager" id="roomsPager"></div>
+  </div>
+
+  <!-- Bans Tab -->
+  <div id="tabBans" style="display:none">
+    <div class="filter-bar">
+      <input type="text" id="banSearchInput" placeholder="搜索封禁IP..." data-i18n-ph="ph_search_ban">
+      <select id="filterBanSrc">
+        <option value="" data-i18n="filter_ban_all">来源: 全部</option>
+        <option value="relay" data-i18n="filter_ban_relay">Relay(WS)</option>
+        <option value="admin" data-i18n="filter_ban_admin">管理后台</option>
+      </select>
+      <select id="bansPerPage" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:12px">
+        <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option><option value="1000">1000</option><option value="10000">10000</option>
+      </select>
+      <span style="font-size:12px;color:var(--dim)" data-i18n="per_page">条/页</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th data-i18n="th_ip">IP 地址</th><th data-i18n="th_source">来源</th><th data-i18n="th_reason">封禁原因</th><th data-i18n="th_level">封禁等级</th><th data-i18n="th_remain">剩余时间</th><th data-i18n="th_action">操作</th>
+        </tr></thead>
+        <tbody id="bansBody"><tr><td colspan="6" class="empty" data-i18n="loading">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager" id="bansPager"></div>
+  </div>
+
+  <!-- Ban Events Tab -->
+  <div id="tabBanEvents" style="display:none">
+    <div class="filter-bar">
+      <input type="text" id="banEvtSearch" placeholder="搜索IP..." data-i18n-ph="ph_search_ban">
+      <select id="banEvtPerPage" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:12px">
+        <option value="50" selected>50</option><option value="100">100</option><option value="200">200</option><option value="500">500</option>
+      </select>
+      <span style="font-size:12px;color:var(--dim)" data-i18n="per_page">条/页</span>
+      <select id="clearBanEvtMode" style="margin-left:auto;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px">
+        <option value="all">清理全部</option>
+        <option value="30d">清理 30 天前</option>
+        <option value="7d">清理 7 天前</option>
+      </select>
+      <button class="tcb secondary" style="padding:5px 12px;font-size:12px" data-admin-action="clearEvents" data-admin-arg="ban">清理</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th data-i18n="th_ip">IP</th><th data-i18n="th_event">事件</th><th data-i18n="th_source">来源</th><th data-i18n="th_reason">原因</th><th data-i18n="th_duration_col">时长</th><th data-i18n="th_time_col">时间</th>
+        </tr></thead>
+        <tbody id="banEvtBody"><tr><td colspan="6" class="empty" data-i18n="loading">加载中...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager" id="banEvtPager"></div>
+  </div>
+
+  </div> <!-- /viewDashboard -->
+
+  <!-- View: Theme (主题) -->
+  <div id="viewTheme" class="app-view">
+    <div class="app-view-header">
+      <h1 class="app-view-title" data-i18n="view_theme">前端主题</h1>
+      <span id="themeHint" style="color:var(--dim);font-size:12px">-</span>
+    </div>
+
+    <!-- 预览总开关 (省带宽: 关闭后 /_white/ /_black/ 不连 WS) -->
+    <div class="room-preview-bar" style="margin-bottom:10px">
+      <span class="rpb-label" data-i18n="preview_master">预览总开关</span>
+      <button id="previewMasterBtn" data-admin-action="togglePreviewMaster" class="tcb secondary" style="padding:6px 14px;min-width:130px">...</button>
+      <span class="rpb-hint" id="previewMasterHint" data-i18n="preview_master_disabled">关闭时所有 /_white/ /_black/ 路径不连 WS</span>
+    </div>
+
+    <!-- 房间号输入 (两张卡片共用) -->
+    <div class="room-preview-bar">
+      <span class="rpb-label" data-i18n="preview_room_id">预览房间号</span>
+      <input type="text" id="previewRoomKey" placeholder="输入房间号" data-i18n-ph="ph_preview_room" autocomplete="off" spellcheck="false">
+      <span class="rpb-hint" data-i18n="preview_room_hint">不输入则只预览入场页</span>
+    </div>
+
+
+    <div class="theme-grid">
+
+      <!-- 白色版卡片 -->
+      <div class="theme-card" data-theme="white">
+        <div class="theme-card-preview">
+          <div class="pv pv-white">
+            <div class="pv-top">
+              <div class="pv-tab on"></div><div class="pv-tab"></div><div class="pv-tab"></div><div class="pv-tab"></div>
+            </div>
+            <div class="pv-body">
+              <div class="pv-side">
+                <div class="pv-stat"></div><div class="pv-stat"></div><div class="pv-stat"></div>
+                <div class="pv-stat"></div><div class="pv-stat"></div>
+              </div>
+              <div class="pv-map">
+                <div class="pv-dot self"></div>
+                <div class="pv-dot enemy"></div>
+                <div class="pv-dot team"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-card-body">
+          <div class="theme-card-title" data-i18n="white_version">白色版</div>
+          <div class="theme-card-desc" data-i18n="white_desc">极简白底配黑色高光，玻璃磨砂质感。带 landing 入场页和中英双语切换。</div>
+          <div class="theme-card-tags">
+            <span class="theme-tag" data-i18n="tag_day_friendly">白天友好</span>
+            <span class="theme-tag" data-i18n="tag_bilingual">中英双语</span>
+            <span class="theme-tag" data-i18n="tag_frosted">毛玻璃</span>
+            <span class="theme-tag">26 KB CSS</span>
+          </div>
+          <div class="theme-card-actions">
+            <button class="tcb primary" data-action="switch" data-admin-action="switchTheme" data-admin-arg="white"><span data-i18n="switch_to_this">切换到此</span></button>
+            <a class="tcb secondary" href="#" target="_blank" data-preview="white"><span data-i18n="preview_landing">预览入场页</span></a>
+            <button class="tcb secondary" data-admin-action="previewRoom" data-admin-arg="white"><span data-i18n="preview_room_btn">预览房间</span></button>
+            <button class="tcb-gear" data-admin-action="toggleThemeSettings" data-admin-arg="white" data-i18n-title="title_theme_settings" title="设置标题/图标" aria-label="settings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+          </div>
+
+          <!-- 设置面板 (折叠, 点 ⚙ 展开) -->
+          <div class="theme-settings-panel" id="settingsWhite">
+            <div class="tsp-row">
+              <label data-i18n="tnb_title">浏览器标题</label>
+              <input type="text" id="titleInputWhite" maxlength="64">
+              <div class="tsp-default"><span data-i18n="tsp_default">默认</span>: <code id="titleDefaultWhite">Holo Tactical Radar</code></div>
+            </div>
+            <div class="tsp-row">
+              <label data-i18n="tnb_icon">图标</label>
+              <div class="tsp-icon-row">
+                <img class="tsp-icon-preview" id="iconPreviewWhite" alt="">
+                <input type="text" id="iconInputWhite" placeholder="输入图标地址或留空" data-i18n-ph="ph_icon_url">
+                <input type="file" id="iconFileWhite" accept="image/png,image/jpeg,image/gif,image/svg+xml,image/x-icon,image/webp" style="display:none">
+                <button class="tsp-mini-btn" data-admin-trigger="iconFileWhite" data-i18n-title="title_upload_icon" title="上传">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </button>
+                <button class="tsp-mini-btn" data-admin-action="clearIconDirty" data-admin-arg="white" data-i18n-title="title_clear_icon" title="清除">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+              <div class="tsp-default tsp-icon-fallback" data-icon-fallback="white">
+                <span data-i18n="tsp_icon_default_text">清空后使用前端自带 favicon</span>
+              </div>
+            </div>
+            <div class="tsp-row" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
+              <label>Landing 文案 (中文)</label>
+              <input type="text" id="landingTitleZhWhite" maxlength="200" placeholder="标题 (如: 全息战术雷达)">
+              <input type="text" id="landingDescZhWhite" maxlength="200" placeholder="描述 (如: 接入加密频道...)">
+            </div>
+            <div class="tsp-row">
+              <label>Landing Text (EN)</label>
+              <input type="text" id="landingTitleEnWhite" maxlength="200" placeholder="Title (e.g. Holo Tactical Radar)">
+              <input type="text" id="landingDescEnWhite" maxlength="200" placeholder="Description">
+            </div>
+            <div class="tsp-actions">
+              <span class="tsp-msg" id="msgWhite"></span>
+              <button class="tcb secondary" data-admin-action="resetSettings" data-admin-arg="white" data-i18n="reset_to_default">重置默认</button>
+              <button class="tcb primary" id="saveBtnWhite" data-admin-action="saveOneTheme" data-admin-arg="white" disabled data-i18n="save">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 黑色版卡片 -->
+      <div class="theme-card" data-theme="black">
+        <div class="theme-card-preview">
+          <div class="pv pv-black">
+            <div class="pv-top">
+              <div class="pv-tab on"></div><div class="pv-tab"></div><div class="pv-tab"></div><div class="pv-tab"></div>
+            </div>
+            <div class="pv-body">
+              <div class="pv-side">
+                <div class="pv-stat"></div><div class="pv-stat"></div><div class="pv-stat"></div>
+                <div class="pv-stat"></div><div class="pv-stat"></div>
+              </div>
+              <div class="pv-map">
+                <div class="pv-dot self"></div>
+                <div class="pv-dot enemy"></div>
+                <div class="pv-dot team"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-card-body">
+          <div class="theme-card-title" data-i18n="black_version">黑色版</div>
+          <div class="theme-card-desc" data-i18n="black_desc">全黑底配 iOS 蓝高光，工业暗黑风。无入场页直接进雷达，单一中文。</div>
+          <div class="theme-card-tags">
+            <span class="theme-tag" data-i18n="tag_night_friendly">夜间友好</span>
+            <span class="theme-tag" data-i18n="tag_power_save">省电模式</span>
+            <span class="theme-tag" data-i18n="tag_github">GitHub 风</span>
+            <span class="theme-tag">16 KB CSS</span>
+          </div>
+          <div class="theme-card-actions">
+            <button class="tcb primary" data-action="switch" data-admin-action="switchTheme" data-admin-arg="black"><span data-i18n="switch_to_this">切换到此</span></button>
+            <a class="tcb secondary" href="#" target="_blank" data-preview="black"><span data-i18n="preview_landing">预览入场页</span></a>
+            <button class="tcb secondary" data-admin-action="previewRoom" data-admin-arg="black"><span data-i18n="preview_room_btn">预览房间</span></button>
+            <button class="tcb-gear" data-admin-action="toggleThemeSettings" data-admin-arg="black" data-i18n-title="title_theme_settings" title="设置标题/图标" aria-label="settings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+          </div>
+
+          <!-- 设置面板 -->
+          <div class="theme-settings-panel" id="settingsBlack">
+            <div class="tsp-row">
+              <label data-i18n="tnb_title">浏览器标题</label>
+              <input type="text" id="titleInputBlack" maxlength="64">
+              <div class="tsp-default"><span data-i18n="tsp_default">默认</span>: <code id="titleDefaultBlack">Divine Lock</code></div>
+            </div>
+            <div class="tsp-row">
+              <label data-i18n="tnb_icon">图标</label>
+              <div class="tsp-icon-row">
+                <img class="tsp-icon-preview" id="iconPreviewBlack" alt="">
+                <input type="text" id="iconInputBlack" placeholder="输入图标地址或留空" data-i18n-ph="ph_icon_url">
+                <input type="file" id="iconFileBlack" accept="image/png,image/jpeg,image/gif,image/svg+xml,image/x-icon,image/webp" style="display:none">
+                <button class="tsp-mini-btn" data-admin-trigger="iconFileBlack" data-i18n-title="title_upload_icon" title="上传">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </button>
+                <button class="tsp-mini-btn" data-admin-action="clearIconDirty" data-admin-arg="black" data-i18n-title="title_clear_icon" title="清除">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+              <div class="tsp-default tsp-icon-fallback" data-icon-fallback="black">
+                <span data-i18n="tsp_icon_default_text">清空后使用前端自带 favicon</span>
+              </div>
+            </div>
+            <div class="tsp-row" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
+              <label>Landing 文案 (中文)</label>
+              <input type="text" id="landingTitleZhBlack" maxlength="200" placeholder="标题">
+              <input type="text" id="landingDescZhBlack" maxlength="200" placeholder="描述">
+            </div>
+            <div class="tsp-row">
+              <label>Landing Text (EN)</label>
+              <input type="text" id="landingTitleEnBlack" maxlength="200" placeholder="Title">
+              <input type="text" id="landingDescEnBlack" maxlength="200" placeholder="Description">
+            </div>
+            <div class="tsp-actions">
+              <span class="tsp-msg" id="msgBlack"></span>
+              <button class="tcb secondary" data-admin-action="resetSettings" data-admin-arg="black" data-i18n="reset_to_default">重置默认</button>
+              <button class="tcb primary" id="saveBtnBlack" data-admin-action="saveOneTheme" data-admin-arg="black" disabled data-i18n="save">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div style="margin-top:18px;color:var(--dim);font-size:12px;line-height:1.7" data-i18n-html="theme_tip_html">
+      <b style="color:var(--text)">提示</b><br>
+      ● <b>切换到此</b>：所有访问 <code style="color:var(--accent)">/</code> 主路径的用户都切到该主题，用户 F5 即生效。<br>
+      ● <b>预览入场页</b>：新窗口打开 <code style="color:var(--accent)">/_white/</code> 或 <code style="color:var(--accent)">/_black/</code>，看 landing/登录页效果。<br>
+      ● <b>预览房间</b>：用上面的房间号直接进入雷达地图，看实际数据画面。
+    </div>
+  </div>
+
+  <!-- View: Security (安全) -->
+  <div id="viewSecurity" class="app-view">
+    <div class="app-view-header">
+      <h1 class="app-view-title" data-i18n="view_security">安全</h1>
+      <span style="color:var(--dim);font-size:12px" data-i18n="security_subtitle">房间白名单 · pub 鉴权 · 实时生效</span>
+    </div>
+
+    <!-- 安全子页签 -->
+    <div class="sec-tabs">
+      <button class="sec-tab active" data-sec-tab="port" data-i18n="sec_tab_port">端口设置</button>
+      <button class="sec-tab" data-sec-tab="whitelist" data-i18n="sec_tab_whitelist">房间白名单</button>
+      <button class="sec-tab" data-sec-tab="privacy" data-i18n="sec_tab_privacy">隐私模式</button>
+    </div>
+
+    <!-- Tab: 端口设置 -->
+    <div class="sec-tab-pane active" id="secPanePort" data-sec-pane="port">
+      <div class="sec-card">
+        <div class="sec-card-title" data-i18n="frontend_access_title">前端访问端口</div>
+        <p class="sec-card-dim" style="margin:0 0 12px" data-i18n="frontend_access_hint">管理后台「进入房间」、主题预览等链接使用此端口。默认 80；云厂商封 80 时可改为 1366 等（需在 nginx / 安全组放行）。</p>
+        <div class="sec-add-bar" style="align-items:center">
+          <label for="frontendPortInput" style="white-space:nowrap;color:var(--dim);font-size:13px" data-i18n="frontend_access_port_label">HTTP 端口</label>
+          <input type="number" id="frontendPortInput" min="1" max="65535" step="1" value="80" style="width:120px">
+          <button type="button" class="tcb primary" data-admin-action="saveFrontendPort" data-i18n="save">保存</button>
+          <span class="rpb-hint" id="frontendAccessPreview"></span>
+        </div>
+        <div class="form-msg" id="frontendAccessMsg"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 房间白名单 -->
+    <div class="sec-tab-pane" id="secPaneWhitelist" data-sec-pane="whitelist">
+      <div class="sec-card">
+        <div class="room-preview-bar" style="margin-bottom:0">
+          <span class="rpb-label" data-i18n="whitelist_master">房间白名单</span>
+          <button id="whitelistMasterBtn" data-admin-action="toggleWhitelistMaster" class="tcb secondary" style="padding:6px 14px;min-width:130px">...</button>
+          <span class="rpb-hint" id="whitelistMasterHint" data-i18n="whitelist_master_hint">开启后仅白名单内房间号可连入 DLL</span>
+        </div>
+        <div class="sec-meta" id="whitelistMeta"></div>
+      </div>
+
+      <div class="sec-card" id="whitelistEditCard">
+        <div class="sec-card-title" data-i18n="whitelist_room_list">授权房间号</div>
+        <div class="sec-add-bar">
+          <input type="text" id="whitelistAddInput" maxlength="32" autocomplete="off" spellcheck="false" data-i18n-ph="ph_whitelist_add" placeholder="输入房间号后回车或点添加">
+          <button type="button" class="tcb primary" data-admin-action="addWhitelistRoom" data-i18n="whitelist_add_btn">添加</button>
+        </div>
+        <div class="wl-room-grid" id="whitelistRoomList"></div>
+        <div class="sec-bulk">
+          <label data-i18n="whitelist_bulk_label">批量编辑（竖线分隔）</label>
+          <textarea id="whitelistBulkInput" rows="3" spellcheck="false"></textarea>
+          <div class="sec-bulk-actions">
+            <button type="button" class="tcb secondary" data-admin-action="loadWhitelistBulk" data-i18n="whitelist_bulk_load">从名单载入</button>
+            <button type="button" class="tcb primary" data-admin-action="saveWhitelistBulk" data-i18n="whitelist_bulk_save">保存名单</button>
+          </div>
+          <div class="form-msg" id="whitelistMsg"></div>
+        </div>
+      </div>
+
+      <div class="sec-card sec-card-dim" id="whitelistPullNotice" style="display:none">
+        <span data-i18n="whitelist_pull_notice">当前为拉取模式 (ROOMS_API_URL)，名单由外部 API 每 10 秒同步，此处只读。</span>
+      </div>
+
+      <!-- 外部 API 同步 -->
+      <div class="sec-card">
+        <div class="sec-card-title" data-i18n="ext_api_title">外部 API 同步</div>
+        <p class="sec-card-dim" style="margin:0 0 12px" data-i18n="ext_api_hint">填写外部 API 地址后系统将定期拉取房间号列表（竖线分隔），自动同步到白名单。已连接但不在名单中的房间将被踢出。</p>
+        <div class="sec-add-bar" style="align-items:center;flex-wrap:wrap;gap:8px">
+          <label style="white-space:nowrap;color:var(--dim);font-size:13px" data-i18n="ext_api_url_label">API 地址</label>
+          <input type="url" id="extApiUrlInput" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px" data-i18n-ph="ph_ext_api_url" placeholder="">
+        </div>
+        <div class="sec-add-bar" style="align-items:center;margin-top:8px;gap:8px">
+          <label style="white-space:nowrap;color:var(--dim);font-size:13px" data-i18n="ext_api_interval_label">轮询间隔</label>
+          <input type="number" id="extApiIntervalInput" min="1" max="9999" step="1" value="10" style="width:80px">
+          <select id="extApiUnitSelect" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:13px">
+            <option value="s" data-i18n="unit_seconds">秒</option>
+            <option value="m" selected data-i18n="unit_minutes">分钟</option>
+            <option value="h" data-i18n="unit_hours">小时</option>
+          </select>
+          <button type="button" class="tcb primary" data-admin-action="saveExtApi" data-i18n="save">保存</button>
+          <button type="button" class="tcb secondary" data-admin-action="testExtApi" data-i18n="ext_api_test">测试预览</button>
+          <button type="button" class="tcb secondary" id="extApiStopBtn" data-admin-action="stopExtApi" data-i18n="ext_api_stop" style="display:none">停止同步</button>
+        </div>
+        <div class="sec-meta" id="extApiStatus" style="margin-top:8px"></div>
+        <div class="form-msg" id="extApiMsg"></div>
+        <div id="extApiKeysList" style="display:none;margin-top:8px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto;font-size:12px;font-family:monospace;line-height:1.8"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 隐私模式 -->
+    <div class="sec-tab-pane" id="secPanePrivacy" data-sec-pane="privacy">
+      <div class="sec-card">
+        <div class="sec-card-title" data-i18n="privacy_mode_title">隐私模式</div>
+        <p class="sec-card-dim" style="margin:0 0 12px" data-i18n="privacy_mode_hint">开启后前端玩家名字只显示首尾字符（你是45我 → 你*我），避免泄露真实 ID。</p>
+        <div class="room-preview-bar" style="margin-bottom:0">
+          <span class="rpb-label" data-i18n="privacy_mode_label">名字脱敏</span>
+          <button id="privacyModeBtn" data-admin-action="togglePrivacyMode" class="tcb secondary" style="padding:6px 14px;min-width:130px">...</button>
+          <span class="rpb-hint" id="privacyModeHint" data-i18n="privacy_mode_status_off">已关闭，显示完整名字</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View: Announcement (公告) -->
+  <div id="viewAnnouncement" class="app-view">
+    <div class="app-view-header">
+      <h1 class="app-view-title" data-i18n="view_announcement">公告</h1>
+      <span style="color:var(--dim);font-size:12px" data-i18n="announcement_subtitle">向前端用户推送通知 · 实时生效</span>
+    </div>
+
+    <div class="ann-toolbar">
+      <button class="ann-add-btn" data-admin-action="openAnnEdit" data-i18n="ann_add">+ 新建公告</button>
+      <input type="text" id="annSearch" class="ann-search"
+             data-i18n-ph="ann_search_ph" placeholder="搜索标题或内容..."
+            >
+      <span class="ann-count" id="annCount">0</span>
+    </div>
+
+    <div id="annList" class="ann-list">
+      <!-- JS 渲染卡片 -->
+    </div>
+  </div>
+
+  <!-- View: Recordings (对局回放) -->
+  <div id="viewRecordings" class="app-view">
+    <div class="app-view-header">
+      <h1 class="app-view-title" data-i18n="view_recordings">对局回放</h1>
+      <span style="color:var(--dim);font-size:12px" data-i18n="recordings_subtitle">录制管理 · 分享回放链接</span>
+    </div>
+
+    <!-- 正在录制 -->
+    <div class="sec-card" id="activeRecordingsCard" style="display:none">
+      <div class="sec-card-title" style="color:var(--red)">● <span data-i18n="rec_active">正在录制</span></div>
+      <div id="activeRecordingsList"></div>
+    </div>
+
+    <!-- 回放列表 -->
+    <div class="sec-card">
+      <div class="sec-card-title" data-i18n="rec_history">对局回放记录</div>
+      <div class="rec-toolbar">
+        <input type="text" id="recSearchInput" autocomplete="off" spellcheck="false" data-i18n-ph="ph_rec_search" placeholder="搜索房间号 / 地图..." style="flex:1;min-width:140px;max-width:280px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-size:12px">
+        <select id="recDurationFilter" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:12px">
+          <option value="" data-i18n="rec_dur_all">全部时长</option>
+          <option value="60" data-i18n="rec_dur_1m">&lt; 1 分钟</option>
+          <option value="300" data-i18n="rec_dur_5m">&lt; 5 分钟</option>
+          <option value="600" data-i18n="rec_dur_10m">&lt; 10 分钟</option>
+          <option value="1800" data-i18n="rec_dur_30m">&lt; 30 分钟</option>
+          <option value="1800+" data-i18n="rec_dur_30m_plus">&gt; 30 分钟</option>
+        </select>
+        <select id="recPerPage" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:12px">
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="1000">1000</option>
+          <option value="10000">10000</option>
+        </select>
+        <span style="font-size:12px;color:var(--dim)" data-i18n="rec_per_page">条/页</span>
+        <span id="recTotal" style="font-size:12px;color:var(--dim);margin-left:auto"></span>
+        <button class="action-btn enter" style="margin-left:8px" data-admin-action="importRecording"
+          >⬆ <span data-i18n="rec_import">导入录制</span></button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-i18n="rec_th_room">房间号</th>
+            <th data-i18n="rec_th_map">地图</th>
+            <th data-i18n="rec_th_msgs">消息数</th>
+            <th data-i18n="rec_th_duration">时长</th>
+            <th data-i18n="rec_th_size">大小</th>
+            <th data-i18n="rec_th_time">录制时间</th>
+            <th data-i18n="rec_th_type">类型</th>
+            <th data-i18n="rec_th_expires">到期</th>
+            <th data-i18n="th_action">操作</th>
+          </tr></thead>
+          <tbody id="recordingsBody"><tr><td colspan="9" class="empty" data-i18n="loading">加载中...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="rec-pager" id="recPager"></div>
+    </div>
+  </div>
+
+  <!-- 分享链接弹窗 -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal" style="max-width:520px">
+      <h2><span data-i18n="rec_share_title">分享回放</span> <button class="close-btn" data-admin-action="closeShareModal">✖</button></h2>
+      <div class="form-modal-inner">
+        <div class="form-row">
+          <label data-i18n="rec_share_link">回放链接</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="shareUrlInput" readonly style="flex:1;font-size:13px;font-family:monospace">
+            <button class="tcb primary" data-admin-action="copyShareUrl" data-i18n="rec_copy">复制</button>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:14px">
+          <label>自定义分享 ID <span style="font-weight:400;color:var(--fg2,#888)">(Custom Slug)</span></label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="shareSlugInput" placeholder="例: latest, demo, my-replay" style="flex:1;font-size:13px;font-family:monospace" autocomplete="off" spellcheck="false">
+            <button class="tcb primary" data-admin-action="saveShareSlug">保存</button>
+          </div>
+          <div style="font-size:12px;color:var(--fg2,#888);margin-top:4px">仅字母、数字、下划线、连字符。设置后可用 slug 替代随机 token 访问，更换录制时 URL 不变。</div>
+        </div>
+        <div class="form-row" id="shareSlugUrlRow" style="display:none;margin-top:10px">
+          <label>Slug 链接</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="shareSlugUrlInput" readonly style="flex:1;font-size:13px;font-family:monospace">
+            <button class="tcb primary" data-admin-action="copyShareSlugUrl" data-i18n="rec_copy">复制</button>
+          </div>
+        </div>
+        <div class="form-msg" id="shareMsg"></div>
+        <div class="form-row" style="margin-top:12px">
+          <button id="shareRevokeBtn" class="tcb" style="color:var(--red);border-color:var(--red)" data-admin-action="revokeShare" data-i18n="rec_unshare">取消分享</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下载进度 -->
+  <div id="dlProgressOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 36px;min-width:340px;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,0.25)">
+      <div style="font-size:15px;font-weight:600;color:var(--fg);margin-bottom:14px" id="dlProgressText">正在下载...</div>
+      <div style="height:8px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:8px">
+        <div id="dlProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#58d68d);border-radius:999px;transition:width 0.3s ease"></div>
+      </div>
+      <div style="text-align:right;font-size:13px;color:var(--dim);font-weight:500" id="dlProgressPct">0%</div>
+    </div>
+  </div>
+
+  <!-- 导入录制弹窗 -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal" style="max-width:520px">
+      <h2><span data-i18n="rec_import_title">从 URL 导入录制</span> <button class="close-btn" data-admin-action="closeImportModal">✖</button></h2>
+      <div class="form-modal-inner">
+        <div class="form-row">
+          <label data-i18n="rec_import_url_label">录制文件 URL</label>
+          <input type="text" id="importUrlInput" autocomplete="off" spellcheck="false" placeholder="输入服务地址" style="font-size:13px;font-family:monospace">
+        </div>
+        <div class="form-row" style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--dim)">
+            <input type="checkbox" id="importUseExternal" checked>
+            <span data-i18n="rec_use_external">使用外链回放（不占本服务器带宽）</span>
+          </label>
+        </div>
+        <div class="form-row" style="display:flex;gap:8px;margin-top:8px">
+          <button class="tcb" data-admin-action="testImportUrl" style="flex:1" data-i18n="rec_import_test">测试预览</button>
+          <button class="tcb primary" data-admin-action="doImportRecording" style="flex:1" data-i18n="rec_import">导入录制</button>
+        </div>
+        <div id="importPreview" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+          <table style="width:100%;font-size:13px"><thead><tr style="color:var(--dim)">
+            <th data-i18n="rec_th_room">房间号</th>
+            <th data-i18n="rec_th_map">地图</th>
+            <th data-i18n="rec_th_msgs">消息数</th>
+            <th data-i18n="rec_th_duration">时长</th>
+            <th data-i18n="rec_th_size">大小</th>
+          </tr></thead><tbody id="importPreviewBody"></tbody></table>
+        </div>
+        <div class="form-msg" id="importMsg" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View: About (关于) -->
+  <div id="viewAbout" class="app-view">
+    <div class="app-view-header">
+      <h1 class="app-view-title" data-i18n="view_about">关于</h1>
+      <span style="color:var(--dim);font-size:12px" data-i18n="about_subtitle">产品信息 · 更新日志</span>
+    </div>
+
+    <!-- 产品 Hero 卡 -->
+    <div class="about-hero">
+      <div class="about-icon">
+        <img src="/assets/favicon.svg" alt="" width="72" height="72">
+      </div>
+      <div class="about-info">
+        <div class="about-title" data-i18n="about_product_name">Relay 后台</div>
+        <div class="about-meta">
+          <span class="about-version" id="aboutVersion">v1.0.0</span>
+          <span class="about-dot">·</span>
+          <span class="about-date" id="aboutDate">2026-06-12</span>
+        </div>
+        <div class="about-desc" data-i18n="about_product_desc">WSRadar Web 系统的管理后台 · WS 中继 + 主题切换 + 实时统计</div>
+      </div>
+    </div>
+
+    <!-- 更新日志 -->
+    <div class="cl-section-title" data-i18n="about_changelog">更新日志</div>
+    <div class="changelog" id="changelog">
+      <!-- JS 动态渲染 -->
+    </div>
+  </div>
+
+  </main>
+</div>
+
+<script src="admin.js?v=20260913histfull"></script>
+<script src="admin-events.js?v=20260913histfull"></script>
+</body>
+</html>
