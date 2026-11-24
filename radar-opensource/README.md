@@ -9,6 +9,7 @@
 - `serve_frontend.js`：前端静态服务、主题路由及同源 API/WebSocket 网关。
 - `backend/assets/`：无损 WebP 背景、通用 SVG 图标和本地 ECharts 5.4.3。
 - `third-party/`：随附第三方代码的许可证与通知。
+- `tools/simulate_pub.js`：调试用推流模拟器（没有 DLL 时向房间灌假数据）。
 
 ## 启动
 
@@ -32,7 +33,18 @@
 前端 `/api/`、`/ws` 自动转发至本机后台与中继，默认不需要在前端填写服务器地址。
 服务默认只在本机提供 HTTP 访问；公开部署时通过自己的反向代理访问，或配置 `FRONTEND_BIND`、`ADMIN_BIND`。代理后按自己的网络拓扑设置 `TRUST_PROXY`。
 
-地图瓦片与物品图标的资源地址默认留空，页面仍可显示坐标、区域与标记回退。资源结构与配置见 `frontend/README.md`。没有随包提供第三方地图图片或游戏数据源。
+地图瓦片与物品图标的资源地址在 `frontend/config.js` 中配置：默认指向官方公开资源（开箱即有地图），也可改为自建图床目录，或全部留空退化为坐标/区域/标记渲染。资源结构与配置见 `frontend/README.md`。仓库不随包提供第三方地图图片或游戏数据源。
+
+## 调试推流
+
+没有游戏 DLL 时，用 `tools/simulate_pub.js` 向房间推送与真实 DLL 同格式的假数据：
+
+```bash
+node tools/simulate_pub.js --key 8888 --map daba --rate 10 --count 6
+node tools/simulate_pub.js --map list
+```
+
+随后打开 `http://127.0.0.1:8080/black/?key=8888` 即可看到移动的玩家、物品与撤离点。
 
 ## 后台与状态
 

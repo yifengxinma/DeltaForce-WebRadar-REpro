@@ -1,14 +1,24 @@
-/* 前端部署配置：空地址使用当前站点，资源地址留空时不加载外部图片。 */
+/* 前端部署配置。
+ * - 服务地址留空时使用当前站点同源（/api/、/ws）。
+ * - 地图瓦片与图标默认指向官方公开资源，使其开箱可见；
+ *   若改为自建图床，只需把下面三项替换为你的地址，或全部留空（则只显示坐标/标记回退）。
+ */
 (function () {
   'use strict';
   const config = Object.freeze({
     apiBase: '',
     relayUrl: '',
     localUrl: '',
-    tileBase: '',
-    itemIconBase: '',
-    markerIconBase: '',
-    noCorsImageHosts: [],
+
+    // 地图瓦片：{tileBase}{layer}/{z}_{x}_{y}.jpg（爆破图 png，见 mapConfig.js 的 tileExt）
+    tileBase: 'https://game.gtimg.cn/images/dfm/cp/a20240729directory/img/',
+    // 物品图标：{itemIconBase}{itemId}.png
+    itemIconBase: 'https://playerhub.df.qq.com/playerhub/60004/object/',
+    // 标记图标：{markerIconBase}bxx.png / xbxx.png / dtcld.png / cgcld.png
+    markerIconBase: 'https://game.gtimg.cn/images/dfm/cp/a20240729directory/img/lv3/',
+
+    // 这些主机不返回 CORS 头，跳过 fetch 直接用 Image 加载，避免控制台报错
+    noCorsImageHosts: ['game.gtimg.cn', 'playerhub.df.qq.com'],
   });
   function socketUrl(value) {
     const url = new URL(value || '/ws', window.location.href);
